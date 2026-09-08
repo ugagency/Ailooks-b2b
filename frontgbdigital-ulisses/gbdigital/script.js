@@ -1,5 +1,5 @@
 // script.js - Lógica AI Look (Versão v5.0 - Full Management & History)
-const webhookUrl = 'https://automacoes-n8n.infrassys.com/webhook-test/ailooks-lojas';
+const webhookUrl = 'https://automacoes-n8n.infrassys.com/webhook/ailooks-lojas';
 const chatWebhookUrl = 'https://automacoes-n8n.infrassys.com/webhook/webchat';
 
 // Elementos da Interface
