@@ -1,0 +1,4 @@
+# Harnesses de teste (usam um cliente Supabase falso via ?teste=1; inofensivos, mas não fazem
+# parte do produto e não precisam estar publicamente acessíveis no deploy).
+_test_multiselect.html
+_test_painel.html
