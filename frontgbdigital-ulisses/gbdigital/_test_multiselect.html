@@ -1,0 +1,108 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head><body>
+<pre id="out">RUNNING</pre>
+<iframe id="f" src="index.html" style="width:1080px;height:1600px"></iframe>
+<script>
+const out = document.getElementById('out');
+const log = [];
+const ok = (cond, msg) => log.push((cond ? 'PASS ' : 'FAIL ') + msg);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const PNG1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+async function waitFor(fn, tries = 100) { for (let i = 0; i < tries; i++) { if (fn()) return true; await sleep(100); } return false; }
+
+(async () => {
+  const f = document.getElementById('f');
+  await new Promise(r => f.onload = r);
+  const w = f.contentWindow, d = f.contentDocument;
+  await waitFor(() => d.querySelectorAll('.catalogo-card').length === 8);
+  const card = sku => Array.from(d.querySelectorAll('.catalogo-card')).find(c => c.dataset.sku === sku);
+  const counter = () => d.getElementById('pecas-counter').textContent;
+  const chips = () => Array.from(d.querySelectorAll('#pecas-selecionadas span')).map(s => s.textContent);
+  const selectedSkus = () => Array.from(d.querySelectorAll('.catalogo-card.ring-2')).map(c => c.dataset.sku);
+  const gen = () => d.getElementById('generateBtn');
+
+  ok(d.querySelectorAll('.catalogo-card').length === 8, 'catálogo renderizou 8 cards');
+  ok(counter() === '0 de 5 peças', 'contador inicial: ' + counter());
+  ok(gen().disabled, 'gerar desabilitado sem foto e sem peça');
+  ok(d.getElementById('section-wardrobe-upload').style.display === 'none', 'linha de peça única oculta');
+
+  // tops: 3º top substitui o mais antigo
+  card('TOP-001').click(); card('TOP-002').click(); card('TOP-003').click();
+  ok(JSON.stringify(selectedSkus()) === JSON.stringify(['TOP-002', 'TOP-003']), 'terceiro top substitui o mais antigo: ' + selectedSkus());
+  ok(card('TOP-002').querySelector('.catalogo-check') && !card('TOP-002').querySelector('.catalogo-check').classList.contains('hidden'), 'selo de check visível na peça selecionada');
+  ok(card('TOP-001').querySelector('.catalogo-check').classList.contains('hidden'), 'selo oculto na peça substituída');
+
+  // bottom: troca
+  card('BOT-001').click(); card('BOT-002').click();
+  ok(selectedSkus().includes('BOT-002') && !selectedSkus().includes('BOT-001'), 'segundo bottom substitui o primeiro');
+
+  card('CAL-001').click(); card('ACE-001').click();
+  ok(counter() === '5 de 5 peças', 'contador com 5: ' + counter());
+  ok(chips().length === 5, 'faixa mostra 5 chips');
+
+  // desmarcar tocando de novo
+  card('TOP-002').click();
+  ok(counter() === '4 de 5 peças' && !selectedSkus().includes('TOP-002'), 'tocar de novo desmarca: ' + counter());
+
+  // remover pela faixa
+  const chipBtn = Array.from(d.querySelectorAll('#pecas-selecionadas button')).find(b => b.getAttribute('aria-label').includes('Cinto'));
+  chipBtn.click();
+  ok(!selectedSkus().includes('ACE-001') && counter() === '3 de 5 peças', 'remover pela faixa funciona: ' + counter());
+  ok(gen().disabled, 'gerar ainda desabilitado sem foto (com peças)');
+
+  // ordem de envio: seleciona fora de ordem, 2 tops com ordem de seleção preservada
+  d.getElementById('resetBtn').click();
+  ok(counter() === '0 de 5 peças' && selectedSkus().length === 0, 'reset limpa seleção');
+  card('ACE-001').click(); card('CAL-002').click(); card('BOT-001').click(); card('TOP-003').click(); card('TOP-001').click();
+  const ord = w.pecasOrdenadas().map(p => p.sku);
+  ok(JSON.stringify(ord) === JSON.stringify(['TOP-003', 'TOP-001', 'BOT-001', 'CAL-002', 'ACE-001']), 'ordem top,bottom,calcado,acessorio + ordem de seleção nos tops: ' + ord);
+
+  // foto via manequim -> habilita gerar
+  await w.setManequin('male_average');
+  await waitFor(() => !gen().disabled);
+  ok(!gen().disabled, 'gerar habilitado com foto + 1..5 peças');
+
+  // intercepta o POST
+  const origFetch = w.fetch.bind(w);
+  let captured = null; let fakeResp = null;
+  w.fetch = async (url, opts) => {
+    if (typeof url === 'string' && url.includes('webhook')) {
+      captured = {};
+      for (const [k, v] of opts.body.entries()) captured[k] = (v && typeof v === "object" && "size" in v) ? `Blob(${v.size})` : v;
+      return new Response(JSON.stringify(fakeResp), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return origFetch(url, opts);
+  };
+
+  // 1) multi-peça: justificativa null -> bloco oculto
+  fakeResp = [1, 2, 3].map(() => ({ edited: PNG1, justificativa: null }));
+  await w.sendGenerate();
+  ok(captured && captured.nr_imagem === '5', 'nr_imagem = ' + (captured && captured.nr_imagem));
+  ok(captured && captured.pecas_nomes === 'Blazer Linho Bege|Camisa Oxford Branca|Calça Chino Caqui|Tênis Couro Branco|Cinto Couro Marrom', 'pecas_nomes na mesma ordem: ' + (captured && captured.pecas_nomes));
+  ok(captured && ['image_base', 'image_reference', 'image_reference_2', 'image_reference_3', 'image_reference_4', 'image_reference_5', 'prompt', 'mode'].every(k => k in captured), 'campos do FormData: ' + Object.keys(captured || {}).join(','));
+  ok(captured && captured.mode === 'generate' && captured.prompt.includes('Contexto:'), 'prompt e mode preservados');
+  ok(captured && Object.values(captured).filter(v => String(v).startsWith('Blob(')).every(v => v !== 'Blob(0)'), 'blobs não vazios: ' + Object.entries(captured).filter(([k]) => k.startsWith('image')).map(([k, v]) => k + '=' + v).join(' '));
+  const rj = d.getElementById('resultJustificativa');
+  ok(rj.classList.contains('hidden') && rj.innerHTML === '', 'justificativa null: bloco oculto e vazio');
+  ok(d.querySelectorAll('#resultGrid img').length === 3, '3 looks renderizados');
+
+  // 2) uma peça: justificativa preenchida -> exibida
+  d.getElementById('resetBtn').click();
+  await w.setManequin('female_average');
+  card('TOP-001').click();
+  await waitFor(() => !gen().disabled);
+  fakeResp = [1, 2, 3].map(i => ({ edited: PNG1, justificativa: 'Look ' + i + ' explicado.\n\nDetalhe.' }));
+  await w.sendGenerate();
+  ok(captured.nr_imagem === '1' && captured.pecas_nomes === 'Camisa Oxford Branca' && !('image_reference_2' in captured), '1 peça: nr_imagem=1, sem image_reference_2');
+  ok(!rj.classList.contains('hidden') && rj.children.length === 3, 'justificativa preenchida: 3 blocos visíveis');
+
+  // 3) mistura null / texto
+  fakeResp = [{ edited: PNG1, justificativa: 'Só o primeiro.' }, { edited: PNG1, justificativa: null }, { edited: PNG1, justificativa: '' }];
+  await w.sendGenerate();
+  ok(!rj.classList.contains('hidden') && rj.children.length === 1, 'mistura: só a justificativa não-nula aparece');
+
+  out.textContent = log.join('\n') + '\nDONE ' + log.filter(l => l.startsWith('FAIL')).length + ' FAIL';
+})().catch(e => { out.textContent = log.join('\n') + '\nERROR ' + (e.stack || e); });
+</script>
+</body></html>

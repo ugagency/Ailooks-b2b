@@ -1,0 +1,1873 @@
+{
+  "name": "IA_look_webchat",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webchat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -6640,
+        1872
+      ],
+      "id": "0846dab5-466d-448b-a43b-f46b9bd852dc",
+      "name": "Webhook",
+      "webhookId": "f256f04a-1382-44eb-b8b3-64b0c51d2a48"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Mensagem do usuário:\n{{ $json.mensagem }}",
+        "options": {
+          "systemMessage": "Sua tarefa é identificar a intenção da mensagem abaixo.\n\n1. ask_general  \nQuando o usuário faz perguntas gerais sobre moda, estilo, combinações, tendências, \nou dúvidas comuns que não se encaixam em outra intenção específica.\n\n2. look_occasion  \nQuando o usuário pede sugestões de looks para alguma ocasião específica \n(exemplos: casamento, trabalho, festa, viagem, jantar, balada, entrevista, evento formal).\n\n3. look_body  \nQuando o usuário fala sobre tipo de corpo, formato corporal, proporções, altura, peso, \nou pede dicas de looks que favoreçam suas características físicas.\n\n4. colors_combination  \nQuando o usuário pergunta como combinar cores, quais cores ficam boas juntas, \nquais cores usar em determinada peça ou ocasião.\n\n5. pieces_recommendation  \nQuando o usuário pede recomendações de peças específicas ou como usar/compor uma peça \n(ex.: “como usar essa camisa?”, “que sapato combina com isso?”, “essa calça combina com o quê?”).  \nInclui casos onde o usuário envia foto de uma peça e pede combinação.\n\n6. quiz_start  \nQuando o usuário demonstra interesse em fazer um quiz, teste, diagnóstico, \nou pede ajuda para “descobrir seu estilo”.\n\n7. photo_analysis  \nQuando o usuário envia uma foto (com ou sem legenda) para que o assistente analise seu look, \nsuas roupas, seu estilo ou dê opinião sobre sua aparência visual naquele momento.  \nUse esta intenção somente quando ficar claro que o objetivo é análise de imagem.\n\n8. purchase_intent  \nQuando o usuário demonstra que quer comprar uma peça, procura onde adquirir, \nou pede ajuda para escolher algo para comprar.\n\n9. chitchat  \nQuando o usuário apenas conversa informalmente, envia cumprimentos, emojis, frases soltas, \ncomentários descontraídos ou mensagens que não são relacionadas a moda, compra ou análise.\n\nretorne a intenção da mensagem\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -5568,
+        1888
+      ],
+      "id": "33d51bd0-2ce3-406f-aec1-fd97dc27bc4f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -5616,
+        2128
+      ],
+      "id": "2cc6ffd1-06e3-4d47-8bc2-6825319f85dd",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "chitchat",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2b3dfd3d-5afb-4b46-8142-4aefe8e1b4dd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3d6c9c40-d226-4d1f-b713-c731b0f66285",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "ask_general",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0c3f6748-32de-42f4-9779-92b4a7cefe9d",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "look_occasion",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "94b329a8-69a8-4d0c-aea9-628571de778e",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "look_body",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e1aa9840-ddb1-4297-968f-2fa3ea7da3fe",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "colors_combination",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1982f0d0-bddc-4c2c-a9f3-38fc460803ec",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "pieces_recommendation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e3aeb4f5-5c1a-4e0c-a5f1-090b2992991e",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "quiz_start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c631fefa-9000-4805-8b4c-487442c6aae2",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "purchase_intent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c32b3aaf-581d-4afc-a852-4344944141c3",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "photo_analysis",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -5088,
+        1808
+      ],
+      "id": "23f99119-6e4c-45a5-a6a3-f908511ffcc1",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3296,
+        272
+      ],
+      "id": "6545911a-a14a-46e3-a931-7f6c3af63db2",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8leYRYiGWcFJsgQe",
+          "name": "gemini fallback"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3280,
+        592
+      ],
+      "id": "8f5cee9f-d007-4174-b705-c2027d1f79f2",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8leYRYiGWcFJsgQe",
+          "name": "gemini fallback"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Mensagem do usuário:\n{{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um assistente amigável e educado do Guia Look. \nQuando o usuário enviar uma mensagem de conversa casual (como cumprimentos, brincadeiras, comentários aleatórios ou frases sem relação com moda), responda de forma simpática, curta e acolhedora.\n\nMantenha um tom leve e humano, mas não se aprofunde em assuntos fora do contexto do atendimento. \nSe for natural, conecte a conversa ao tema de moda ou ao e-book, convidando o usuário a perguntar algo sobre estilo, combinações ou looks.\n\nJamais invente informações técnicas que não estejam no e-book e nunca ofereça análise de moda sem uma pergunta concreta.\n\nExemplos de comportamento:\n- Se o usuário disser \"Oi\", responda com um cumprimento cordial.\n- Se brincar ou elogiar, agradeça com leveza.\n- Se perguntar “tudo bem?”, responda e convide para tirar dúvidas de moda.\n\nObjetivo: manter a conversa leve, simpática e continuar guiando o usuário para temas de moda."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3264,
+        80
+      ],
+      "id": "fdff8a77-68e1-4d81-8e3a-56e350af571b",
+      "name": "init"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3312,
+        1472
+      ],
+      "id": "a31bd15e-ec31-4025-95fb-ec26c7d8958e",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8leYRYiGWcFJsgQe",
+          "name": "gemini fallback"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3264,
+        1152
+      ],
+      "id": "941aa6a1-39ad-460a-bf1c-c77fc10bffc2",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8leYRYiGWcFJsgQe",
+          "name": "gemini fallback"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3264,
+        864
+      ],
+      "id": "6b3134f6-3b3d-4cda-8cd5-3f0312d882b3",
+      "name": "Google Gemini Chat Model5",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8leYRYiGWcFJsgQe",
+          "name": "gemini fallback"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda especializado em combinar cores conforme instruções do e-book Guia Look. \nExplique as combinações possíveis com base nos trechos fornecidos, sugerindo 2 ou 3 alternativas que harmonizem bem. \nUse linguagem simples, sem teoria complexa de cores, e ofereça exemplos práticos de peças.\nFinalize perguntando se o usuário quer ver outra combinação.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3296,
+        1312
+      ],
+      "id": "c28d3ada-7395-4620-b8a5-07a7cf5c23d2",
+      "name": "color"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3312,
+        1792
+      ],
+      "id": "51dea9f3-feaa-4508-8fbb-708a26075808",
+      "name": "Google Gemini Chat Model6",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3328,
+        2128
+      ],
+      "id": "516aa126-72d5-4843-be7a-f14cee420714",
+      "name": "Google Gemini Chat Model7",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3424,
+        2544
+      ],
+      "id": "cb013be9-a351-49ac-af55-bf9b649c004a",
+      "name": "Google Gemini Chat Model9",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda do Guia Look que ajuda o usuário a tomar boas decisões de compra. \nAntes de recomendar, entenda rapidamente o que ele busca (cor, ocasião, estilo).\nUse os trechos do e-book para orientar a escolha e sugerir combinações que façam sentido.\nFinalize oferecendo links de lojas apenas se você tiver essas informações pré-programadas; caso contrário, diga que pode ajudar com estilos e peças.\nebook: \" ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3376,
+        2368
+      ],
+      "id": "9f5b7dc8-93b0-41c4-b98e-c06960cd3fc0",
+      "name": "compras"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda especializado em proporções corporais, estilos universais e construção de looks, com foco no conteúdo do Guia Look.\n\nSua função é analisar o item enviado pelo usuário e recomendar combinações com base exclusiva nos trechos do e-book fornecido.\n\n🔍 REGRAS DE FUNCIONAMENTO (LÓGICA CONDICIONAL)\n1️⃣ Se existir análise da imagem\n\nConteúdo recebido em:\n\n{{ $('Edit Fields').item.json.analiseimg }}\n\n\nEntão:\n\nUse essa análise como fonte principal para identificar:\n\nPeças de roupa\n\nCores\n\nMateriais\n\nEstilo aparente\n\nMarcas visíveis ou reconhecíveis (se a IA multimodal identificar)\n\nCaimento, modelagem e nível de formalidade\n\nCom base nisso:\n\nDiga quais peças a pessoa está usando (sem citar corpo/físico).\n\nDestaque marcas se forem reconhecíveis pela IA de visão.\n\nAvalie rapidamente o estilo predominante (clássico, elegante, casual etc.) conforme o e-book.\n\nDê até 3 sugestões objetivas de combinações que valorizem:\n\nproporção corporal informada pelo usuário\n\nharmonia visual\n\ncores que se complementam\n\ncaimentos adequados\n\nRelacione TUDO somente aos conceitos presentes no e-book.\n\n2️⃣ Se NÃO existir análise de imagem\n\nIgnore completamente referências visuais.\n\nBaseie-se apenas no item digitado pelo usuário.\n\nDê até 3 sugestões diretas, práticas e alinhadas ao e-book.\n\nPriorize equilíbrio visual, ajuste, cores e caimento.\n\n🧭 REGRAS GERAIS FIXAS\n\nNunca critique o corpo do usuário.\n\nNunca use termos técnicos complexos.\n\nAs sugestões devem sempre usar como referência o conteúdo do e-book:\n\nestilos universais\n\ntipos de corpo\n\ncaimentos\n\najustes\n\nocasiões\n\ntecidos e combinações adequadas\n\nSeja objetivo, amigável e prático.\n\nEvite descrições físicas do usuário (ex.: “ombros largos”, “pernas finas”).\n\nNÃO invente informações que a imagem não mostra.\n\nFinalize sempre com: “Como próxima peça, quer analisar o quê?”\n\n📚 CONTEÚDO DO E-BOOK\nESTILOS UNIVERSAIS Os sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são. Lembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares. I- TRADICIONAI/CLÁSSICO O estilo clássico é marcado pela atemporalidade. Homens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade. ELEGANTE/CONTEMPORANEO Ele pode ser confundido, às vezes, com o tradicional. Mas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos. MODERNO/DRAMÁTICO É marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão. ROMÂNTICO No estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade. Roupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada. CRIATIVO Esse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas. CASUAL/ESPORTIVO Esse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada. SEXY O estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder. Esse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada. ARMÁRIO CAPSULA E uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações. A ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina. Desta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio. Lembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração. Agora vamos às peças essenciais?! ROUPA PARA CADA TIPO DE CORPO Quando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado. Neste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal. Desde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito. Aqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você. ALTO E MAGRO Se você é alto e magro, e deseja disfarçar isso, aposte em: Looks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta. Gola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite Peças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é. Estampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado Camiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir. BAIXO 23 of 165 Se você é baixo e deseja aparentar ser mais alto, aposte em: Looks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto. Linhas verticais, as horizontais podem te achatar ainda mais Ajustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar Não é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta. Estampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso. Blusa até o meio do zíper da calça. Se passar muito, pode te achatar. Blusa até o meio do zíper da calça. Se passar muito, pode te achatar. GORDO Se você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em: Peças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual. Gola V. Ela vai alongar o seu pescoço Cores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário Estampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis. Acessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando TAMANHO E CAIMENTO Na moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença. Neste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança. CAMISA SOCIAI Pontos a serem observados: Colarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço. Se conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado. Ideal Apertado Folgado Linha do ombro: ela precisa estar entre o seu ombro e seu braço. CALÇA Pontos a serem observados: Barra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato. X Lateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\". Ela não deve ficar colada, mas alinhada e próxima ao corpo. BLAZER E JAQUETAS Pontos a serem observados: Linha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo. Mesma coisa da camisa. Comprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito. BERMUDA Pontos a serem observados: Comprimento: abaixo do joelho fica um aspecto de \"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho. Largura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante. CAMISETAS Pontos a serem observados: Linha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo. Mesma coisa da camisa e do blazer. Comprimento: não pode passar do zíper da calça LOOKS PARA CADA OCASIÃO Montar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento. Neste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais. A proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação. CASUAL Bem-vindo ao mundo do estilo casual, onde a elegância encontra o conforto de forma natural. Este capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados. Do casual chic ao casual esportivo, desvendaremos as nuances desse estilo versátil. Prepare-se para se destacar com confiança em situações como jantares, encontros, saídas com amigos e outras ocasiões do dia a dia. CASAL Aqui está uma oportunidade especial para ambos. Não só para deixar sua parceira feliz, mas também para coordenar seus visuais e estar no mesmo ritmo. Ajudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente. De ocasiões românticas a encontros informais, separei uma variedade de cenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look. Compartilhar processo de vestir fortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos. FRIO Nesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes. Além de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de peças-chave permitem enfrentar o frio com confiança. Esta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação. ACADEMIA Na academia, vestir-se bem vai além do treino - é uma forma de construir relacionamentos e destacar-se. Escolher roupas adequadas, especialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho. Um visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões profissionais. Optar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem vestido na academia irá atrair olhares e conexões. STREETWEAR Neste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com atitude, peças na proposta oversize, logos e estampas aparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais como rap e hip-hop No entanto, é importante lembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas. VERÃO E PRAIA Neste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas, caminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas adaptáveis. Deixe-se levar pela atmosfera ensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses ambientes. SOCIAL/ELEGANTE Bem-vindo ao mundo do estilo onde a elegância é social, essencial. Esta seção é dedicada a orientá-lo em ocasiões especiais e ambientes profissionais. Seja para um casamento, uma festa de alto padrão ou o ambiente corporativo, essas sugestões e inspirações de looks serão seus guias confiáveis. Do casual chic ao casual esportivo, desvendaremos as nuances desse estilo versátil. Prepare-se para se destacar com confiança em situações como jantares, encontros, saídas com amigos e outras ocasiões do dia a dia. Cada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos detalhes refinados, encontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3280,
+        1008
+      ],
+      "id": "dbc75f9e-5d3e-4744-affe-857681b719c8",
+      "name": "body"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda especializado em montar looks adequados para ocasiões específicas. \nUse exclusivamente os trechos do e-book para orientar suas recomendações, priorizando simplicidade, elegância e aplicabilidade prática. \nCrie de 1 a 3 sugestões de looks adequados à ocasião informada, explicando rapidamente o porquê de cada combinação.\nNunca invente peças extravagantes; siga sempre a lógica do Guia Look.\nFinalize perguntando se deseja receber mais sugestões.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3264,
+        752
+      ],
+      "id": "0758c9f7-dfcf-4aab-bbf7-7f412eb2bb58",
+      "name": "ocas"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda especializado no conteúdo do e-book Guia Look. \nResponda a pergunta do usuário de forma clara, curta e prática, usando apenas informações presentes nos trechos do e-book enviados abaixo. \nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\"\n\nSe algo não estiver no e-book, responda com bom senso, mas sem inventar informações técnicas. \nNo final, ofereça uma sugestão extra simples (opcional) e pergunte se deseja mais dicas."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3280,
+        416
+      ],
+      "id": "182b6549-faa8-4dd1-b194-ad4a1a2330eb",
+      "name": "perg_gera"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda que conduz um quiz interativo e leve para descobrir o estilo e preferências do usuário.  \nSua missão é fazer perguntas simples, diretas e amigáveis — sempre uma por vez — sem linguagem técnica e sem julgamentos.\n\nREGRAS IMPORTANTES:\n- Não dê nenhuma análise antes de concluir o quiz.\n- Faça apenas UMA pergunta por mensagem.\n- Espere a resposta do usuário antes de continuar.\n- O quiz deve ser curto, leve e divertido.\n- Sempre contextualize o porquê de cada pergunta de maneira simples.\n- Nunca use termos profissionais difíceis (ex: “visagismo”, “proporção áurea”, “harmonia cromática”).\n\nOBJETIVO DO QUIZ:\nIdentificar preferências reais do usuário para, no final, sugerir looks e estilos baseados no Guia Look.\n\nESTRUTURA DO QUIZ (ORDEM FIXA):\n1. Cor que mais usa no dia a dia.\n2. Tipo de peça que se sente mais confortável (camisa, camiseta, polo, regata, etc.)\n3. Situações em que mais precisa de roupa (trabalho, estudar, sair, viagem, evento, etc.)\n4. Estilo com que mais se identifica (casual, elegante, básico, esportivo, moderno, etc.)\n5. Peça que gostaria de aprender a usar melhor.\n\nRESPOSTA INICIAL DO QUIZ:\nEnvie a primeira mensagem assim:\n“Legal! Vamos começar seu quiz de estilo para te ajudar a montar looks perfeitos 😄  \nPrimeira pergunta: **Qual cor de roupa você mais usa no dia a dia?**”\n\nDepois disso, avance somente quando receber a próxima resposta.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3280,
+        1952
+      ],
+      "id": "889b6faf-bf9b-4071-ad5d-4e38af06d287",
+      "name": "quiz"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3216,
+        1792
+      ],
+      "id": "17d706bc-3f32-4202-8ddc-6cc454b230dc",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3168,
+        256
+      ],
+      "id": "31e4412c-c149-4e0f-8fed-7dc36531e3de",
+      "name": "Postgres Chat Memory1",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3152,
+        608
+      ],
+      "id": "47933e3e-4b7e-46db-afa2-35b81961dfdf",
+      "name": "Postgres Chat Memory2",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3168,
+        880
+      ],
+      "id": "cdf5e25b-b81b-4dd1-8b28-dc8c2fd92d70",
+      "name": "Postgres Chat Memory3",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3152,
+        1152
+      ],
+      "id": "de6ec92c-6e4f-406b-8dcb-127fadae9f26",
+      "name": "Postgres Chat Memory4",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3168,
+        1520
+      ],
+      "id": "6c1298e6-53da-4648-9854-74aa71ac6f62",
+      "name": "Postgres Chat Memory5",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3184,
+        2128
+      ],
+      "id": "59ef6353-4cd6-4701-a490-b14f5fd80984",
+      "name": "Postgres Chat Memory6",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3296,
+        2576
+      ],
+      "id": "4e650638-e8dd-46b9-8b83-4fde74ea30c9",
+      "name": "Postgres Chat Memory8",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3376,
+        2912
+      ],
+      "id": "6bdcafae-d86f-4220-bff5-a3460414fd63",
+      "name": "Google Gemini Chat Model10",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "photo_analysis",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5e8133fe-8e36-4501-89e7-f8c84549f7dd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1baf050b-0f99-4e55-8369-881199b9aab6",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "=pieces_recommendation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9b3594ca-a6a9-4fdb-a167-aee812bc352c",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "look_body",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "067ef6ce-3b21-40fb-bd1c-37e577d77b68",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "vazio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0faef8a4-776a-4bd3-a2b6-ce44c87f7234",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "gerar_image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3024,
+        4080
+      ],
+      "id": "769fc6fd-c7ca-411e-a9a8-f38fea814ed1",
+      "name": "Switch2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        4336
+      ],
+      "id": "a9c456cf-2fb5-4562-8d7b-e3b347034792",
+      "name": "Google Gemini Chat Model8",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Xg7lAFmgQuhsCCAI",
+          "name": "GB_digital"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Edit Fields').item.json.instancia }}",
+        "remoteJid": "={{ $('Edit Fields').item.json.Telefone }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        4160
+      ],
+      "id": "995bf593-7f16-48ae-8c96-90759f62300e",
+      "name": "Enviar texto7",
+      "credentials": {
+        "evolutionApi": {
+          "id": "NU0fVHIKa1ieWpTy",
+          "name": "Evolution account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Analyze an image').item.json.content.parts[0].text }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda do Guia Look. \nCom base estrita nos trechos do e-book enviados, recomende peças que combinem com o item mencionado pelo usuário. \nDê no máximo 3 sugestões curtas de combinações e justifique rapidamente o porquê de cada uma.\nSe o e-book não trouxer exatamente aquela peça, use bom senso e substitua por alternativas coerentes.\nFinalize perguntando se deseja sugestões para outra peça.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        3600,
+        4160
+      ],
+      "id": "de3b7f30-0d88-4fa9-8a70-80b58117cbf1",
+      "name": "recomenda1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields5').item.json.Telefone }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3696,
+        4336
+      ],
+      "id": "149a9e86-592a-4cd3-97ce-9eec6eaee90b",
+      "name": "Postgres Chat Memory9",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3456,
+        4720
+      ],
+      "id": "66b9c13b-c9b7-431d-a5ab-83a4b482228f",
+      "name": "Google Gemini Chat Model12",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Xg7lAFmgQuhsCCAI",
+          "name": "GB_digital"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Edit Fields').item.json.instancia }}",
+        "remoteJid": "={{ $('Edit Fields').item.json.Telefone }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        3872,
+        4544
+      ],
+      "id": "634af989-b726-46d4-8255-6e796ab20d16",
+      "name": "Enviar texto11",
+      "credentials": {
+        "evolutionApi": {
+          "id": "NU0fVHIKa1ieWpTy",
+          "name": "Evolution account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields6').item.json.audiotxtmsg }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda especializado em proporções corporais, com foco no Guia Look. \nBaseie suas respostas nos trechos enviados do e-book, oferecendo sugestões que favoreçam o tipo de corpo informado pelo usuário. \nDê orientações de equilíbrio visual, cores e caimentos, sempre de forma amigável e prática.\nNunca mencione termos técnicos demais ou críticas ao corpo do usuário.\nFinalize oferecendo uma sugestão extra simples.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        3520,
+        4528
+      ],
+      "id": "8a8a9fad-3d09-4b2c-b0f2-98c0e4babcad",
+      "name": "body1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields5').item.json.Telefone }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3568,
+        4720
+      ],
+      "id": "4ac9dbdd-5540-4245-8c1e-d82e5f89ecce",
+      "name": "Postgres Chat Memory10",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -5504,
+        2144
+      ],
+      "id": "b383d77b-7134-42e8-a5ef-06fc52cc3749",
+      "name": "Postgres Chat Memory11",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution }}",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3264,
+        2928
+      ],
+      "id": "24fe2b71-d183-473a-8475-4bff39f6a83e",
+      "name": "Postgres Chat Memory12",
+      "credentials": {
+        "postgres": {
+          "id": "OSMi3qYEYtpK0Qe3",
+          "name": "GB digital"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "=Você é um consultor de moda do Guia Look.\nSua função é analisar o item enviado pelo usuário e recomendar combinações de roupas com base estrita nos trechos do e-book fornecido.\n\nAntes de produzir a resposta, siga esta lógica:\n\n1️⃣ Se existir análise de roupa proveniente da IA de visão\n\nConteúdo recebido em:\n{{ $('Edit Fields').item.json.analiseimg }}\nEntão:\n\nUtilize essa análise como fonte principal para entender a peça, o estilo, materiais, cores e características do item.\n\nCom base nisso, recomende no máximo 3 combinações curtas, justificando rapidamente cada escolha.\n\nAs sugestões devem respeitar tudo que está descrito no e-book (estilos universais, tipos de corpo, caimento, ocasiões, etc.).\n\nSe o e-book não citar diretamente o tipo de peça, use alternativas coerentes mantendo alinhamento com o estilo descrito.\n\n2️⃣ Se NÃO existir análise da imagem (campo vazio ou inexistente)\n\nIgnore completamente qualquer referência visual e siga o fluxo normal:\n\nAnalise apenas o item digitado pelo usuário.\n\nDê no máximo 3 sugestões objetivas, justificadas com base no conteúdo do e-book.\n\nSe o e-book não mencionar a peça exata, substitua por opções equivalentes e coerentes.\n\n3️⃣ Regras gerais fixas (sempre)\n\nNão descreva o corpo, rosto ou físico do usuário.\n\nUse linguagem clara, objetiva e consultiva.\n\nUtilize somente informações do e-book para embasar recomendações.\n\nFinalize sempre com: \"Deseja sugestões para outra peça?\"\n\n4️⃣ Conteúdo do e-book\nESTILOS UNIVERSAIS Os sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são. Lembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares. I- TRADICIONAI/CLÁSSICO O estilo clássico é marcado pela atemporalidade. Homens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade. ELEGANTE/CONTEMPORANEO Ele pode ser confundido, às vezes, com o tradicional. Mas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos. MODERNO/DRAMÁTICO É marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão. ROMÂNTICO No estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade. Roupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada. CRIATIVO Esse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas. CASUAL/ESPORTIVO Esse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada. SEXY O estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder. Esse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada. ARMÁRIO CAPSULA E uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações. A ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina. Desta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio. Lembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração. Agora vamos às peças essenciais?! ROUPA PARA CADA TIPO DE CORPO Quando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado. Neste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal. Desde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito. Aqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você. ALTO E MAGRO Se você é alto e magro, e deseja disfarçar isso, aposte em: Looks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta. Gola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite Peças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é. Estampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado Camiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir. BAIXO 23 of 165 Se você é baixo e deseja aparentar ser mais alto, aposte em: Looks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto. Linhas verticais, as horizontais podem te achatar ainda mais Ajustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar Não é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta. Estampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso. Blusa até o meio do zíper da calça. Se passar muito, pode te achatar. Blusa até o meio do zíper da calça. Se passar muito, pode te achatar. GORDO Se você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em: Peças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual. Gola V. Ela vai alongar o seu pescoço Cores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário Estampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis. Acessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando TAMANHO E CAIMENTO Na moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença. Neste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança. CAMISA SOCIAI Pontos a serem observados: Colarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço. Se conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado. Ideal Apertado Folgado Linha do ombro: ela precisa estar entre o seu ombro e seu braço. CALÇA Pontos a serem observados: Barra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato. X Lateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\". Ela não deve ficar colada, mas alinhada e próxima ao corpo. BLAZER E JAQUETAS Pontos a serem observados: Linha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo. Mesma coisa da camisa. Comprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito. BERMUDA Pontos a serem observados: Comprimento: abaixo do joelho fica um aspecto de \"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho. Largura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante. CAMISETAS Pontos a serem observados: Linha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo. Mesma coisa da camisa e do blazer. Comprimento: não pode passar do zíper da calça LOOKS PARA CADA OCASIÃO Montar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento. Neste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais. A proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação. CASUAL Bem-vindo ao mundo do estilo casual, onde a elegância encontra o conforto de forma natural. Este capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados. Do casual chic ao casual esportivo, desvendaremos as nuances desse estilo versátil. Prepare-se para se destacar com confiança em situações como jantares, encontros, saídas com amigos e outras ocasiões do dia a dia. CASAL Aqui está uma oportunidade especial para ambos. Não só para deixar sua parceira feliz, mas também para coordenar seus visuais e estar no mesmo ritmo. Ajudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente. De ocasiões românticas a encontros informais, separei uma variedade de cenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look. Compartilhar processo de vestir fortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos. FRIO Nesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes. Além de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de peças-chave permitem enfrentar o frio com confiança. Esta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação. ACADEMIA Na academia, vestir-se bem vai além do treino - é uma forma de construir relacionamentos e destacar-se. Escolher roupas adequadas, especialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho. Um visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões profissionais. Optar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem vestido na academia irá atrair olhares e conexões. STREETWEAR Neste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com atitude, peças na proposta oversize, logos e estampas aparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais como rap e hip-hop No entanto, é importante lembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas. VERÃO E PRAIA Neste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas, caminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas adaptáveis. Deixe-se levar pela atmosfera ensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses ambientes. SOCIAL/ELEGANTE Bem-vindo ao mundo do estilo onde a elegância é social, essencial. Esta seção é dedicada a orientá-lo em ocasiões especiais e ambientes profissionais. Seja para um casamento, uma festa de alto padrão ou o ambiente corporativo, essas sugestões e inspirações de looks serão seus guias confiáveis. Do casual chic ao casual esportivo, desvendaremos as nuances desse estilo versátil. Prepare-se para se destacar com confiança em situações como jantares, encontros, saídas com amigos e outras ocasiões do dia a dia. Cada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos detalhes refinados, encontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\" "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3312,
+        1616
+      ],
+      "id": "d1f756b9-b50b-4b94-b3f5-60418d32300d",
+      "name": "recomenda"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b61683ec-f31a-4ecc-9c70-74618c2910ff",
+              "name": "mensagem",
+              "value": "={{ $('Webhook').item.json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "6c874528-f08a-4e8f-84cd-27d5aa229f4d",
+              "name": "analiseimg",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5920,
+        1888
+      ],
+      "id": "84f7fd41-594f-49a5-a201-65f5f54e7cc5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2a7f5760-0359-40ee-8aed-431b4272b3b1",
+              "leftValue": "={{ $json.body.has_image }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6432,
+        1872
+      ],
+      "id": "22187840-c458-4692-9ee1-f8c1a3fca050",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Você é um especialista em análise de moda e estilo pessoal. Sua tarefa é analisar a imagem enviada com foco exclusivo no LOOK da pessoa. Desconsidere totalmente o ambiente, objetos, fundo ou outros elementos. Avalie apenas o que a pessoa está vestindo.\n\nDescreva de forma clara, detalhada e organizada:\n\nPeças de roupa: Liste cada peça visível (parte de cima, parte de baixo, vestido, calçado, acessórios, casacos, etc.).\n\nMarcas e referências:\n\nIdentifique marcas prováveis com base em design, modelagem, detalhes, estampas e assinatura visual.\n\nCaso não seja possível identificar a marca exata, indique estilo de marca semelhante\n\nCores e padrões: Identifique cores, estampas, texturas e materiais de cada peça.\n\nModelagem e estrutura: Comente sobre o corte, caimento, comprimento, silhueta e estilo das peças.\n\nAcessórios: Analise tudo o que compõe o look (bolsa, óculos, relógio, joias, cinto, chapéu, etc.).\n\nEstilo geral: Classifique o estilo do look (ex.: casual, elegante, streetwear, romântico, clássico, minimalista, sexy, esportivo, fashion-forward).\n\nCoerência e harmonia: Faça uma leitura do conjunto — combinação de cores, proporção, equilíbrio, se as peças conversam entre si.\n\nImpacto visual: Explique o que o look transmite (ex.: moderno, despojado, profissional, ousado).\nDe retorno quero somente a analise com nenhum texto a mais!",
+        "inputType": "binary",
+        "binaryPropertyName": "image",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -6176,
+        1776
+      ],
+      "id": "96029b14-32c7-47a7-81fb-aa42f7bd2bd1",
+      "name": "lookanalyst",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -3008,
+        2752
+      ],
+      "id": "28af7cba-bd58-4e24-a4e0-086b6985dea0",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.analiseimg }}",
+        "options": {
+          "systemMessage": "Você é um consultor de moda do Guia Look.  \nExplique ao usuário que para dar dicas personalizadas, ele deve enviar uma foto nítida, de corpo inteiro, com boa luz.  \nNão faça análise até receber a imagem.\nSe já houver imagem disponível no fluxo, dê orientações simples baseadas no e-book, focando em cores, proporções e sugestões amigáveis.\nEbook:\"ESTILOS UNIVERSAIS\nOs sete estilos universais são conceitos fundamentais na moda e servem como uma bússola para entender e construir uma identidade visual coerente. Cada estilo reflete diferentes aspectos de personalidade e preferências, ajudando homens a escolher roupas que representem quem são.\nLembre-se, isso não é para ser difícil e confuso. Geralmente temos um desses como estilo base e os outros como comple-mentares.\nI- TRADICIONAI/CLÁSSICO\n\nO estilo clássico é marcado pela atemporalidade.\nHomens que seguem esse estilo preferem roupas de alta qualidade, com cortes tradicionais e cores neutras, como azul-marinho, cinza e branco. São adeptos de peças como ternos retos, camisas sociais e sapatos de couro. É o estilo de quem valoriza a formalidade e quer passar uma imagem de seriedade.\n\nELEGANTE/CONTEMPORANEO\nEle pode ser confundido, às vezes, com o tradicional.\nMas o que diferencia um do outro é que o estilo elegante tem mais refinamento no corte, caimento, acabamento e também um toque de modernidade. Aqui, há uma combinação de peças de alfaiataria com elementos despojados, como calças slim fit, camisetas com cortes diferenciados e acessórios modernos.\n\nMODERNO/DRAMÁTICO\nÉ marcante e cheio de personalidade. Ele é para homens que querem ser notados, com escolhas ousadas em cores fortes, cortes geométricos e peças que impactam. É um visual que transmite confiança e inten-sidade. Ótimo para quem gosta de moda e quer fazer dela uma forma de expressão.\n\nROMÂNTICO\nNo estilo romântico, predominam peças com detalhes refinados e uma estética que transmite sensibilidade.\nRoupas em tons claros, tecidos suaves como algodão e linho, e acessórios discretos são comuns. É ideal para homens que gostam de um visual sofisticado e sutil, de forma equilibrada.\n\nCRIATIVO\nEsse estilo é para quem não tem medo de ousar. Uma pessoa criativa mistura cores, estampas, tecidos e complexidades peculiares, sempre buscando um visual origi-nal. Homens com esse estilo gostam de experimentar e usam a moda como uma forma de expressão pessoal. Aqui, não existem regras fixas.\n\nCASUAL/ESPORTIVO\nEsse estilo reflete uma personalidade descontraída e prática. O foco está em peças confortáveis e funcionais, como camisetas, jeans, jaquetas leves e tênis. As cores são mais diversificadas e os tecidos, muitas vezes, são mais leves e flexíveis. Ideal para homens que buscam objetivos no dia a dia e valorizam o conforto, sem abrir mão de uma aparência sofisticada.\n\nSEXY\nO estilo sexy para homens é caracterizado por peças e estampas que destacam a silhueta e a presença física, criando uma imagem de confiança, atração e poder.\nEsse estilo é construído com roupas que realçam o corpo sem exageros, transmitindo uma atitude segura e sofisticada.\n\nARMÁRIO CAPSULA\nE uma abordagem prática e versátil para o seu guarda-roupa, que busca oferecer com um número reduzido de peças essenciais diversas combi-nações.\nA ideia é simplificar o dia a dia com escolhas bem pensadas e funcionais, investindo em roupas de qualidade e que façam sentido na sua rotina.\nDesta forma, é possível criar diversas combinações com facilidade, adaptando-se a diferentes peças sem precisar de um armário cheio.\nLembrando que, as peças que você perceber que não faz sentido para o seu estilo, não precisa levar em consideração.\nAgora vamos às peças essenciais?!\n\nROUPA PARA CADA TIPO DE CORPO\nQuando falamos de estilo masculino, a escolha das roupas ideais vai muito além das últimas tendências. Saber quais peças que favorecem o seu tipo de corpo pode transformar o visual, valorizando os pontos fortes e criando uma aparência equilibrada e confiante. Assim como cada pessoa é única, cada corpo tem suas particularidades, e entender essas diferenças é o primeiro passo para um guarda-roupa bem estruturado.\nNeste capítulo, exploraremos dicas e truques para ajudar homens a encontrar peças que realcem o melhor de cada formato corporal.\nDesde a escolha de cortes que acompanham a silhueta até tecidos que garantem um caimento perfeito.\nAqui resumi alguns biotipos, outros juntei para ficar mais prático, mas leve em consideração as suas característi-cas, o que quer realçar ou disfarçar, e coloque na sua vida as dicas que farão sentido para você.\nALTO E MAGRO\n\nSe você é alto e magro, e deseja disfarçar isso, aposte em:\nLooks com contraste, ou até mesmo em um look monocromático, use um cinto de cor diferente para fazer a quebra na silhueta.\nGola careca ou arredondada, a gola V traz sensação de mais amplitude na área do colo e pescoço, se você não quer isso, evite\nPeças em tons claros. Não é que a roupa escura irá te emagrecer, mas elas trazem uma ilusão visual de você ser mais magro do que já é.\n\nEstampas com padronagens maiores. Estampas com desenhos muitos pequenos, podem te deixar com a impressão de mais magro, além das listras verticais também darem essa impressão de magreza e de ser mais alongado\nCamiseta para fora da calça. Quando você coloca por dentro acaba alongando mais, por isso, fica a seu critério o que você deseja transmitir.\n\nBAIXO\n23 of 165\nSe você é baixo e deseja aparentar ser mais alto, aposte em:\nLooks monocromáticos (um só tom), eles vão alongar a sua silhueta, dando a impressão de ser mais alto.\nLinhas verticais, as horizontais podem te achatar ainda mais\nAjustes das peças. Por ser mais baixo, pode ser que algumas roupas tenham tecido sobrando na barra, por exemplo. Por isso, não deixe os ajustes de lado, eles são essenciais para dar um acabamento ao seu look e te ajudar a alongar\n\nNão é uma dica de vestimenta, mas tão importante quanto é a sua postura. Geralmente ficamos tão curvados durante o dia por conta do celular e afazeres que para algumas pessoas andar curvado já é algo natural, o que te diminui mais ainda. Então, sempre se conscientize de estar com a postura ereta.\nEstampas com padronagens menores. Por você já ser baixo, se usar padronagens maiores elas irão destoar muito e fazer o efeito inverso.\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\n\nBlusa até o meio do zíper da calça.\nSe passar muito, pode te achatar.\nGORDO\nSe você é gordinho (com todo respeito, ok?!) e se incomoda com isso, aposte em:\nPeças do seu tamanho. Muitos acabam comprando peças muito maiores ou pequenas demais para tentar disfarçar algo, mas acabam piorando o visual.\n\nGola V. Ela vai alongar o seu pescoço\nCores escuras. Assim como as claras tendem a expandir, as escuras fazem o contrário\nEstampas menores. Se forem muito grandes e chamativas, podem chamar atenção para lugares indesejáveis.\nAcessórios. Além de arrematar mais o look, eles vão trazer o foco para as extremidades do seu coroo tirando\n\nTAMANHO E CAIMENTO\nNa moda, alcançar o caimento perfeito nem sempre é fácil. As roupas compradas em lojas não ficam 100% adequadas ao corpo de cada um, e é aí que os ajustes são para fazer a diferença. Com pequenos reparos, é possível transformar uma peça comum em algo que valoriza seu estilo e destaca sua presença.\nNeste capítulo, vamos falar sobre como identificar as medidas ideais, o que observar na hora de comprar e como pequenos ajustes podem elevar o seu visual, garantindo conforto e mais confi-ança.\nCAMISA SOCIAI\nPontos a serem observados:\nColarinho: feche todos os botões e veja se consegue passar um dedo seu entre o colarinho e o pescoço.\nSe conseguir está perfeito, se passar mais de um é porque está largo, se for difícil passar um é porque está apertado.\nIdeal\nApertado\nFolgado\nLinha do ombro: ela precisa estar entre o seu ombro e seu braço.\n\nCALÇA\nPontos a serem observados:\nBarra: deve acabar um dedo acima do osso que nós temos na lateral do tornozelo ou, se você prefere um pouco maior, acima do sapato.\nX\nLateral: não adianta mexer só na barra e a lateral está larga demais parecendo um \"saco de batata\".\nEla não deve ficar colada, mas alinhada e próxima ao corpo.\nBLAZER E JAQUETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa.\n\nComprimento: estique os braços na lateral do corpo e faça como se fosse uma conha com as mãos e tente pegar na barra. Se estiver pegando, sobrando muito tecido, é porque está longo demais, se estiver muito acima que nem dá para pegar, é porque está curto. A mão conseguiu encostar sem sobrar nem faltar, perfeito.\n\nBERMUDA\nPontos a serem observados:\nComprimento: abaixo do joelho fica um aspecto de\n\"tiozão\" e te achata. O ideal é de 2 a 3 dedos acima do joelho.\nLargura: aqui já não há muitos ajustes, porque a proposta é ser mais solta mesmo. Nada muito aperta-do, pois não fica elegante.\n\nCAMISETAS\nPontos a serem observados:\nLinha do ombro: precisa estar entre o seu ombro e o seu braço. Nem mais em cima, nem mais embaixo.\nMesma coisa da camisa e do blazer.\nComprimento: não pode passar do zíper da calça\n\nLOOKS PARA CADA OCASIÃO\nMontar o look ideal para cada ocasião é essencial para expressar estilo, personalidade e conforto. Cada ambiente ou compromisso exige uma escolha de roupas que combinem com a situação e sejam adequadas ao clima e à finalidade do evento.\nNeste guia, vamos explorar os melhores looks para diversos momentos, desde o casual do dia a dia até o social elegante, passando por produções para o clima frio, verão, praia, academia e até para casais.\nA proposta é ajudar você a escolher peças versáteis e estilosas que tragam o equilíbrio perfeito entre praticidade e sofisticação.\n\nCASUAL\nBem-vindo ao mundo do estilo\ncasual, onde a elegância\nencontra o conforto de forma natural.\nEste capítulo é um convite para explorar o equilíbrio perfeito entre looks descontraídos e sofisticados.\nDo casual chic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\n\nCASAL\nAqui está uma oportunidade especial para ambos.\nNão só para deixar sua\nparceira\nfeliz, mas também para\ncoordenar seus visuais e estar no\nmesmo ritmo.\nAjudar sua amada a escolher sua roupa não apenas demonstra cuidado, mas também garante que vocês estejam em sintonia, inclusive na altura das roupas, literalmente.\nDe ocasiões românticas\na encontros\ninformais, separei uma variedade de\ncenários para alinhar os visuais feminino e masculino, facilitando a criação de seu próprio look.\nCompartilhar processo de vestir\nfortalece o vínculo e torna os momentos especiais ainda mais memoráveis. Porque afinal, o amor se manifesta de muitas maneiras, inclusive no estilo que vocês escolhem juntos.\n\nFRIO\nNesta última seção, exploraremos os looks ideais para enfrentar o frio com estilo e funcionalidade. Quando as temperaturas caem, a moda ganha um novo propósito, possibilitando a criação de visuais quentes e marcantes.\nAlém de manter o calor, os looks de inverno oferecem a chance de expressar individualidade. Camadas bem pensadas e escolhas de\npeças-chave permitem enfrentar o frio com confiança.\nEsta parte do eBook explora diversos estilos de looks de inverno, abrangendo do casual ao formal, proporcionando opções elegantes e confortáveis para enfrentar o frio com sofisticação.\n\nACADEMIA\nNa academia, vestir-se bem vai além do treino - é uma forma\nde\nconstruir\nrelacionamentos e destacar-se.\nEscolher roupas adequadas,\nespecialmente tênis projetados para atividades físicas, contribui para o conforto e desempenho.\nUm visual simples e apropriado, não apenas mostra respeito pelo ambiente, mas também pode abrir portas para conexões\nprofissionais.\nOptar por peças básicas e funcionais é uma abordagem eficaz, lembrando que o foco principal é sempre o esforço investido no treino, mas pode ter certeza que estar bem\nvestido na academia irá atrair olhares e conexões.\n\nSTREETWEAR\nNeste capítulo exploraremos o streetwear, um estilo urbano que combina conforto casual com\natitude, peças na proposta\noversize, logos\ne estampas\naparentes. Originado nas ruas das cidades, o streetwear celebra a individualidade por meio de peças ousadas e influências culturais\ncomo rap e hip-hop\nNo entanto, é importante\nlembrar que esse estilo não se encaixa em todas as ocasiões. Você irá aprender como incorporá-lo com autenticidade ao seu guarda-roupa, mantendo em mente as situações apropriadas.\n\nVERÃO E PRAIA\nNeste capítulo, mergulharemos na proposta praiana e de verão, onde a leveza é a palavra chave. Seja para relaxar à beira-mar, pegar ondas,\ncaminhar pela areia ou aproveitar um almoço ou jantar com vista para o oceano, as opções são variadas\nadaptáveis.\nDeixe-se levar pela atmosfera\nensolarada e escolha suas roupas de acordo com as atividades planejadas. sempre bom lembrar que tecidos naturais como: linho, viscose, seda e algodão são ótimos para esses\nambientes.\n\nSOCIAL/ELEGANTE\nBem-vindo ao mundo do estilo onde a elegância é\nsocial, essencial.\nEsta seção\né dedicada a\norientá-lo em ocasiões especiais e ambientes profissionais.\nSeja para um casamento, uma festa de alto padrão ou o\nambiente corporativo, essas\nsugestões e inspirações de looks serão seus guias confiáveis.\nDo casual\nchic ao casual\nesportivo, desvendaremos as\nnuances desse estilo versátil.\nPrepare-se para se destacar com confiança em situações como\njantares, encontros, saídas com amigos e outras ocasiões do dia a dia.\nCada detalhe importa no estilo social, onde a confiança e a classe se destacam. Dos ternos aos\ndetalhes\nrefinados,\nencontrará orientações precisas para se destacar com maestria em qualquer evento que peça esse dress code\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3360,
+        2752
+      ],
+      "id": "ab80a7aa-459c-4a4c-a4f2-2b958306fa1e",
+      "name": "analista"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2992,
+        2368
+      ],
+      "id": "6f12c32c-d480-4131-8c75-b01d52f878dc",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2912,
+        1936
+      ],
+      "id": "29dabfdc-10e4-43b7-b0f3-9f0193d25743",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2896,
+        1616
+      ],
+      "id": "6fd9d342-8574-4258-80c1-156735b9486f",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2880,
+        1312
+      ],
+      "id": "2fe6ef19-8d03-4468-b0fc-3dadca8d3c61",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2832,
+        992
+      ],
+      "id": "755f830e-9257-4dea-b331-db32a69f6bcb",
+      "name": "Respond to Webhook5"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2848,
+        736
+      ],
+      "id": "f3956212-ee6c-4ddc-ac19-afc4a73cfaf5",
+      "name": "Respond to Webhook6"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2832,
+        416
+      ],
+      "id": "7969c50f-6d59-494a-9649-e69fdf016db4",
+      "name": "Respond to Webhook7"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2832,
+        64
+      ],
+      "id": "6311edce-bbb3-4023-9d38-09b834fd9469",
+      "name": "Respond to Webhook8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "init",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "perg_gera",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ocas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "color",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "recomenda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "quiz",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "compras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "analista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "init",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "perg_gera",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "init": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "color",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "body",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ocas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "color": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "recomenda",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "quiz",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "compras",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "compras": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "body": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ocas": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "perg_gera": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "quiz": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "recomenda",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "init",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "perg_gera",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "ocas",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory4": {
+      "ai_memory": [
+        [
+          {
+            "node": "body",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory5": {
+      "ai_memory": [
+        [
+          {
+            "node": "color",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory6": {
+      "ai_memory": [
+        [
+          {
+            "node": "quiz",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory8": {
+      "ai_memory": [
+        [
+          {
+            "node": "compras",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model10": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "analista",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "recomenda1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "body1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        []
+      ]
+    },
+    "Google Gemini Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "recomenda1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recomenda1": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory9": {
+      "ai_memory": [
+        [
+          {
+            "node": "recomenda1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model12": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "body1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "body1": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory10": {
+      "ai_memory": [
+        [
+          {
+            "node": "body1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory11": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory12": {
+      "ai_memory": [
+        [
+          {
+            "node": "analista",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recomenda": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "lookanalyst",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lookanalyst": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analista": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "16e7c276-ea1a-465a-ac85-caf2d9a4bd64",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "807138b7646fc3b35fe8d414d5cd61eb6889d95886d54e7341e1a712e0242dc1"
+  },
+  "id": "r5m3fL594CMqdcqX",
+  "tags": []
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "sku": "TOP-001",
+    "nome": "Camisa Oxford Branca",
+    "categoria": "top",
+    "preco_centavos": 24900,
+    "estoque": 10,
+    "ordem": 1,
+    "ativo": true,
+    "imagem_url": "catalogo/TOP-001.svg"
+  },
+  {
+    "sku": "TOP-002",
+    "nome": "Polo Piquet Azul-Marinho",
+    "categoria": "top",
+    "preco_centavos": 18900,
+    "estoque": 10,
+    "ordem": 2,
+    "ativo": true,
+    "imagem_url": "catalogo/TOP-002.svg"
+  },
+  {
+    "sku": "TOP-003",
+    "nome": "Blazer Linho Bege",
+    "categoria": "top",
+    "preco_centavos": 59900,
+    "estoque": 10,
+    "ordem": 3,
+    "ativo": true,
+    "imagem_url": "catalogo/TOP-003.svg"
+  },
+  {
+    "sku": "BOT-001",
+    "nome": "Calça Chino Caqui",
+    "categoria": "bottom",
+    "preco_centavos": 22900,
+    "estoque": 10,
+    "ordem": 4,
+    "ativo": true,
+    "imagem_url": "catalogo/BOT-001.svg"
+  },
+  {
+    "sku": "BOT-002",
+    "nome": "Calça Alfaiataria Cinza",
+    "categoria": "bottom",
+    "preco_centavos": 32900,
+    "estoque": 10,
+    "ordem": 5,
+    "ativo": true,
+    "imagem_url": "catalogo/BOT-002.svg"
+  },
+  {
+    "sku": "CAL-001",
+    "nome": "Loafer Couro Marrom",
+    "categoria": "calcado",
+    "preco_centavos": 39900,
+    "estoque": 10,
+    "ordem": 6,
+    "ativo": true,
+    "imagem_url": "catalogo/CAL-001.svg"
+  },
+  {
+    "sku": "CAL-002",
+    "nome": "Tênis Couro Branco",
+    "categoria": "calcado",
+    "preco_centavos": 29900,
+    "estoque": 10,
+    "ordem": 7,
+    "ativo": true,
+    "imagem_url": "catalogo/CAL-002.svg"
+  },
+  {
+    "sku": "ACE-001",
+    "nome": "Cinto Couro Marrom",
+    "categoria": "acessorio",
+    "preco_centavos": 9900,
+    "estoque": 10,
+    "ordem": 8,
+    "ativo": true,
+    "imagem_url": "catalogo/ACE-001.svg"
+  }
+]

@@ -1,0 +1,391 @@
+/* 1. Global Reset & Layout Fixes */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    overflow-x: hidden !important;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    /* Cria um padrão de pontos sutil estilo "grid de design" */
+    background-image: radial-gradient(#E5E5E5 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-attachment: fixed;
+    /* O fundo não se move ao rolar */
+}
+
+/* Fix for iOS auto-zoom on focus - input font size must be at least 16px */
+@media screen and (max-width: 1024px) {
+
+    /* Scale up base fonts for better readability on tablets & smartphones */
+    html {
+        font-size: 110%;
+    }
+
+    /* Target specific small Tailwind classes to make them legible */
+    .text-\[8px\] {
+        font-size: 11px !important;
+    }
+
+    .text-\[10px\] {
+        font-size: 13px !important;
+    }
+
+    .text-xs {
+        font-size: 14px !important;
+    }
+
+    .text-sm {
+        font-size: 16px !important;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+
+    #appContent {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block;
+        margin: 0;
+        padding: 0;
+    }
+
+    .max-w-4xl {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Global image fix for mobile */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Ensure no wide elements break the flow */
+    section,
+    div,
+    header,
+    footer,
+    main {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden;
+        /* Prevent internal overflow from pushing parent */
+    }
+
+    /* Exceptions for elements that MUST scroll horizontally */
+    #ai-selectors-summary>div,
+    .overflow-x-auto {
+        overflow-x: auto !important;
+    }
+}
+
+/* Chat Message Break-word Fix */
+#chat-messages div {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 2. Utilitários de Interface */
+
+/* Efeito de Vidro (Fosco) */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Remove a barra de rolagem (mantendo a funcionalidade) para o Chat ficar limpo */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+/* 3. Animação de Scan (Laser Fashion) 
+   Aparece quando o usuário sobe a foto */
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #C78D75;
+    /* Cor Terracota */
+    box-shadow: 0 0 15px #C78D75, 0 0 5px rgba(255, 255, 255, 0.5);
+    animation: scan 2s infinite linear;
+    display: none;
+    /* Inicia oculto, ativado via JS */
+    z-index: 20;
+}
+
+@keyframes scan {
+    0% {
+        top: 0%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+
+/* 4. Loader Elegante (Círculo Minimalista) 
+   Substituto do loader padrão do navegador */
+.fashion-loader {
+    width: 48px;
+    height: 48px;
+    border: 3px solid #E5E5E5;
+    /* Cinza claro */
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+
+.fashion-loader::after {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: #C78D75;
+    /* Acento Terracota */
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 5. Animações de Entrada (Fade In suave) */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* --- WHEEL PICKER STYLES --- */
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.snap-y {
+    scroll-snap-type: y mandatory;
+    overscroll-behavior-y: contain;
+}
+
+.snap-center {
+    scroll-snap-align: center;
+}
+
+/* Efeito de profundidade para o rolete */
+.wheel-item {
+    transition: transform 0.2s, opacity 0.2s;
+    transform-style: preserve-3d;
+    scroll-snap-stop: always;
+}
+
+/* Garante que o modal se adapte a telas maiores */
+@media (min-width: 768px) {
+    #wheelPickerModal {
+        align-items: center !important;
+    }
+
+    #wheelPickerModal>div:last-child {
+        border-radius: 24px !important;
+        max-width: 400px;
+        margin-bottom: 0;
+    }
+}
+
+/* --- FLOATING NAVBAR (DOCK) STYLES --- */
+#main-nav {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(26, 26, 26, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+#main-nav.nav-visible {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    color: #F9F9F7;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    cursor: pointer;
+}
+
+.nav-item svg {
+    width: 1.4rem;
+    height: 1.4rem;
+    transition: transform 0.3s;
+}
+
+.nav-item:hover {
+    background: rgba(199, 141, 117, 0.2);
+    color: #C78D75;
+}
+
+.nav-item:hover svg {
+    transform: translateY(-8px) scale(1.1);
+}
+
+.nav-item span {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    opacity: 0;
+    transition: all 0.3s;
+    position: absolute;
+    bottom: 8px;
+    pointer-events: none;
+}
+
+.nav-item:hover span {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.nav-separator {
+    width: 1px;
+    height: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 0.25rem;
+}
+
+@media (max-width: 640px) {
+    #main-nav {
+        bottom: 1.5rem;
+        width: 90%;
+        max-width: 400px;
+        justify-content: space-around;
+        padding: 0.4rem;
+    }
+
+    .nav-item {
+        width: 3rem;
+        height: 3rem;
+    }
+}
+
+/* --- RESULT GRID & LIGHTBOX STYLES --- */
+
+#resultGrid > div {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#resultGrid > div:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+#resultGrid img {
+    transition: transform 0.3s ease;
+}
+
+#resultGrid > div:hover img {
+    transform: scale(1.03);
+}
+
+#imageLightbox {
+    animation: lightboxFadeIn 0.2s ease;
+}
+
+@keyframes lightboxFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+

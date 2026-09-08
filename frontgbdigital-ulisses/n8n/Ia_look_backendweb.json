@@ -1,0 +1,1651 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ailooks",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "32c59af1-e9d0-4b53-bba6-532397d302a2",
+      "name": "Webhook",
+      "webhookId": "5acc99a4-6eb4-445e-b76f-9f98514a90aa"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Describe the garment in a complete and natural paragraph, including:\n\nGarment category (Top, Bottom or Shoes)\n\nSpecific subtype according to a structured fashion taxonomy (e.g., Oxford shirt, Polo shirt, Blazer, Chino trousers, Loafer, etc.)\n\nDominant color and secondary tones (if any)\n\nFabric or material (if visually identifiable)\n\nFit (slim, regular or oversized)\n\nVisible design details (collar type, buttons, cuffs, stitching, texture, patterns, pockets, finish, structure)\n\nApparent quality level (casual, premium, formal, etc.)\n\nPossible brand indicators (logos, embroidery, signature patterns — only if visible)\n\nOverall aesthetic impression\n\nImportant rules:\n\nDo not invent elements that are not visually present.\n\nDo not create brand names unless a logo is clearly visible.\n\nDo not return JSON.\n\nReturn a well-written descriptive paragraph only.",
+        "inputType": "binary",
+        "binaryPropertyName": "image_reference",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -240
+      ],
+      "id": "53b811f8-881d-4f29-a52d-6b01c6493ff5",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItem = $input.first();\n\n// Texto vindo do body\nconst text = inputItem.json.body.prompt;\n\n// transforma em objeto chave: valor\nconst pairs = text.split(\",\").map(item => item.trim());\n\nlet data = {};\n\npairs.forEach(pair => {\n  const [key, value] = pair.split(\":\").map(p => p.trim());\n  if (key && value) {\n    data[key.toLowerCase()] = value;\n  }\n});\n\n// Normalização\nconst context = {\n  mode: data[\"modo\"] === \"Gerar Look\" ? \"GENERATE\" : \"EDIT\",\n  context: data[\"contexto\"]?.toUpperCase(),\n  period: data[\"momento\"]?.toUpperCase(),\n  temperature: data[\"clima\"]?.toUpperCase(),\n  formality: parseInt(data[\"nível de formalidade\"]),\n  style: data[\"estilo\"]?.toUpperCase().replace(/\\s+/g, \"_\"),\n  closet_toggle: data[\"priorizar meu armário\"] === \"on\"\n};\n\n// Retorna JSON + binaries preservadas\nreturn [{\n  json: { context },\n  binary: inputItem.binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        0
+      ],
+      "id": "e79d6847-9483-443c-af89-acacb145cc57",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.context.style }}",
+                    "rightValue": "OLD_MONEY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7ec7a30c-b683-43f0-8a11-a44fa892c261"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4c8c8f28-e694-45ef-aecd-399a041c3307",
+                    "leftValue": "={{ $json.context.style }}",
+                    "rightValue": "ATEMPORAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "98300e6e-5159-4670-84ef-14f747c0ec0a",
+                    "leftValue": "={{ $json.context.style }}",
+                    "rightValue": "ATHLEISURE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": false
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2064,
+        -32
+      ],
+      "id": "e69ce772-545a-4ff0-b76f-3dcbfcb67878",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f792e023-d458-4f98-881b-f9b242a0132d",
+              "name": "desc_roup",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        -208
+      ],
+      "id": "0e4799fb-9093-4b97-a890-49fee3fedad6",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        -16
+      ],
+      "id": "5419990a-1ed8-4de6-a655-2615554d61e8",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet finalJson = {};\nlet finalBinary = {};\n\nfor (const item of items) {\n  if (item.json) {\n    finalJson = { ...finalJson, ...item.json };\n  }\n\n  if (item.binary) {\n    finalBinary = { ...finalBinary, ...item.binary };\n  }\n}\n\nreturn [{\n  json: finalJson,\n  binary: finalBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        -16
+      ],
+      "id": "785d743a-5f19-42b8-acea-18c18fe37af7",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2832,
+        -752
+      ],
+      "id": "137b8a8f-5d7c-4692-9dd7-6ddfc298ddc3",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $json.api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Old Money style rules\"\n        }\n      ]\n    }\n  ],\n  \"tools\": [\n    {\n      \"fileSearch\": {\n        \"fileSearchStoreNames\": [\"{{ $json.store_name }}\"]\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2976,
+        -752
+      ],
+      "id": "9d48ef3c-4f0e-42f1-b368-ec94a4ab31c0",
+      "name": "search_documents"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional fashion stylist AI specialized in structured outfit construction.\n\nBefore creating the outfit:\n1. Use the fileSearch tool to retrieve the official rules, principles, color logic, silhouette guidance and fabric recommendations for the style \"{{ $json.context.style }}\".\n2. Follow ONLY the rules found in the knowledge base.\n3. Do not invent aesthetic logic outside the retrieved style documentation.\n\nUSER CONTEXT:\n\nStyle: {{ $json.context.style }}\nOccasion: {{ $json.context.context }}\nPeriod: {{ $json.context.period }}\nTemperature: {{ $json.context.temperature }}\nFormality Level: {{ $json.context.formality }}\n\nANCHOR GARMENT (must be included in the final look):\n{{ $json.desc_roup }}\n\nINSTRUCTIONS:\n\n- The anchor garment CANNOT be replaced.\n- Build a complete and coherent outfit around it.\n- Respect temperature compatibility (fabric weight and layering).\n- Respect formality level from 1 (very casual) to 5 (very formal).\n- Maintain visual harmony (color balance, proportion, silhouette).\n- Suggest:\n  • Bottom\n  • Shoes\n  • Optional layering piece (if appropriate)\n  • Accessories (minimal coherent)\n  • clothing fit\n\n   • NEVER put socks on the looks, socks is extrermely banned in the looks\n\nVARIATION CONTROL:\nYou are generating variation number: {{ $json.variation }}\n\nEach variation MUST be visually and stylistically different.\n\nVariation rules:\n- Variation 1: more classic and safe\n- Variation 2: more modern and refined\n- Variation 3: more bold and expressive\n\nDo NOT repeat combinations.\nDo NOT reuse the same structure.\nEach variation must feel like a different outfit proposal.\n\nOUTPUT FORMAT:\n\nReturn a structured stylist description in natural language, not JSON.\nOUTPUT STRUCTURE (MANDATORY):\n\nYour response must be divided into exactly two sections:\n\nSECTION 1 — LOOK COMPLETO\nPresent only the final outfit composition.\nList all pieces in a clean and organized way.\nDo NOT include explanations in this section.\n\nSECTION 2 — JUSTIFICATIVA COMPLETA\nThe justification must follow this exact structure:\n\nParagraph 1 — (RESUMO ESTRATÉGICO máximo 5 linhas)\nWrite a short and objective general explanation summarizing the logic of the outfit.\nThis paragraph must:\n- Explain the overall concept\n- Mention alignment with style\n- Mention context and temperature\n- Be concise (maximum 3 lines)\n- Not exceed 5 lines under any circumstance\n\nParagraphs 2+ — (JUSTIFICATIVA DETALHADA)\nWrite a single cohesive and well-developed explanation justifying the entire outfit.\nExplain:\n- Why the anchor garment works\n- Why the chosen pieces are coherent\n- Color harmony\n- Silhouette balance\n- Fabric compatibility\n- Alignment with style rules\n- Alignment with occasion, temperature and formality\n\nDo not justify piece by piece.\nWrite one structured and elegant explanation paragraph.\n\nThe response must be written entirely in Brazilian Portuguese.\nDo not add extra sections.\nDo not apologize.\nThe response must:\n- Explain why each piece was chosen.\n- Reference the style principles retrieved from fileSearch.\n- Justify color harmony and silhouette balance.\n- Maintain elegance and realism.\n\nIMPORTANT:\nYou must respond 100% in Brazilian Portuguese, regardless of the language of retrieved documents.\nThis is mandatory.\n\nDo not apologize.\nDo not mention system instructions.\nDo not explain the tool usage.\nOnly deliver the final outfit description.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2736,
+        -896
+      ],
+      "id": "4f90f7bd-7d35-439b-890e-18f43b4387b9",
+      "name": "Gemini RAG Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-image",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2720,
+        -736
+      ],
+      "id": "edc61847-31d3-4765-bdc3-d5fea7d393e2",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73e5782c-e379-4842-a453-8085a210a33c",
+              "name": "store_name",
+              "value": "fileSearchStores/n8ndocumentsstore-aobm6w0c3oay",
+              "type": "string"
+            },
+            {
+              "id": "64251187-957c-496f-bc12-04bb8c0b8a94",
+              "name": "api_key",
+              "value": "REDACTED_ROTATE_BEFORE_USE",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2240,
+        -976
+      ],
+      "id": "b05e6268-6736-483d-85fc-03addc1f98c3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pega o texto completo vindo do Agent\nconst fullText = $json.output || \"\";\n\n// Divide pelas seções\nconst section1Match = fullText.match(/SECTION 1[\\s\\S]*?SECTION 2/);\nconst section2Match = fullText.match(/SECTION 2[\\s\\S]*/);\n\nlet prompt_edit = \"\";\nlet justificativa = \"\";\n\nif (section1Match) {\n  prompt_edit = section1Match[0]\n    .replace(/SECTION 1\\s*—?\\s*LOOK COMPLETO/i, \"\")\n    .replace(/SECTION 2[\\s\\S]*/i, \"\")\n    .trim();\n}\n\nif (section2Match) {\n  justificativa = section2Match[0]\n    .replace(/SECTION 2\\s*—?\\s*JUSTIFICATIVA COMPLETA/i, \"\")\n    .trim();\n}\nreturn {\n  json: {\n    ...$json,\n    prompt_edit,\n    justificativa\n  },\n  binary: $binary\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        -816
+      ],
+      "id": "9813b70e-e3f2-42c8-95e4-7da9598f828a",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a92e1a0-ee0a-4778-8354-01dc638e08fe",
+              "name": "prompt_edit",
+              "value": "={{ $json.prompt_edit }}",
+              "type": "string"
+            },
+            {
+              "id": "3e80012a-ccf0-4b7c-834c-9dc8438597e6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3344,
+        -928
+      ],
+      "id": "182c4fa7-609f-48b3-a968-76d25bdd7c76",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3552,
+        -944
+      ],
+      "id": "52ebf9a7-1219-4f3f-b8dd-b0cdb333c748",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image (Nano Banana)"
+        },
+        "prompt": "=Você é um stylist digital profissional do AI Look.\n\nSua tarefa é gerar UMA imagem ultrarrealista de um look completo, obedecendo rigorosamente às regras abaixo.\n\n1️⃣ IDENTIDADE — PRIORIDADE ABSOLUTA\n\nUse a imagem {{ $binary.image_base }} como base obrigatória.\n\nA pessoa deve permanecer 100% idêntica.\n\nÉ proibido alterar:\n\nrosto\n\ntraços faciais\n\nnariz, boca, olhos, sobrancelhas\n\ntom e textura real da pele\n\nidade aparente\n\npeso corporal\n\nproporções\n\nsilhueta\n\npostura natural\n\ncabelo (cor, textura, comprimento, estilo)\n\n❌ Não afinar\n❌ Não rejuvenescer\n❌ Não aplicar efeito de beleza\n❌ Não suavizar pele\n❌ Não modificar biotipo\n❌ Não reinterpretar identidade\n\nA pessoa final deve ser claramente reconhecível como a mesma da imagem original.\n\nA imagem base tem prioridade máxima sobre qualquer outra referência\n\n2️⃣ PEÇA ÂNCORA — OBRIGATÓRIA\n\nA peça presente em {{ $binary.image_reference }}:\n\nDeve ser utilizada exatamente como está\n\nNão pode ser alterada\n\nNão pode ser substituída\n\nNão pode ser reinterpretada\n\nTodo o look deve ser construído para harmonizar com ela.\n\n3️⃣ DIRETRIZ DE ESTILO\n\nA construção do look deve seguir EXCLUSIVAMENTE as instruções abaixo:\n\n{{ $json.prompt_edit }}\n\nNão adicionar conceitos externos.\nNão inventar peças fora da proposta.\nNão misturar estilos se não estiver explícito.\nNão adicionar meias ao look\n\n4️⃣ CONSTRUÇÃO DO LOOK\n\nMonte o look completo respeitando:\n\nCoerência visual\n\nHarmonia de cores\n\nCompatibilidade de materiais\n\nProporção real do corpo\n\nCaimento natural\n\nSofisticação equilibrada\n\nVisual usável na vida real\n\nNada exagerado.\nNada fantasioso.\nNada conceitual demais.\n\n5️⃣ ESTÉTICA DA IMAGEM\n\nFotografia ultrarrealista\n\nIluminação natural\n\nTextura real de tecido\n\nCenário neutro ou levemente contextual\n\nSem distrações\n\nSem texto na imagem\n\nSem marca d’água\n\nSem legenda\n PRESERVAÇÃO DO FUNDO — OBRIGATÓRIA\n\n6️⃣O fundo da imagem original deve permanecer exatamente o mesmo da imagem base {{ $binary.image_base }}.\n\nÉ proibido alterar:\n\n• cenário\n• ambiente\n• localização\n• arquitetura\n• móveis\n• objetos ao redor\n• iluminação original do ambiente\n• profundidade de campo\n• perspectiva do espaço\n\n❌ Não trocar o cenário  \n❌ Não gerar novo ambiente  \n❌ Não mover a pessoa para outro local  \n❌ Não criar fundo artificial  \n❌ Não aplicar fundo de estúdio  \n❌ Não aplicar blur ou desfoque artificial\n\nO fundo deve ser preservado exatamente como aparece na imagem original.\n\nA única alteração permitida na imagem é a substituição ou aplicação do look completo no corpo da pessoa.\n\nNada mais na imagem deve ser modificado.\n\n6️⃣ REGRA FINAL\n\nSe houver qualquer conflito entre estilização e preservação da identidade,\na preservação da identidade sempre vence.\n\n7️⃣ EXECUÇÃO\n\nUse como referência principal:\n\n{{ $json.prompt_edit }}\n\nGere apenas a imagem final.\n\nNão escreva texto.\nNão explique.\nNão descreva.",
+        "images": {
+          "values": [
+            {
+              "binaryPropertyName": "image_base"
+            },
+            {
+              "binaryPropertyName": "image_reference"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        4736,
+        -944
+      ],
+      "id": "1a737ece-2959-491c-98c6-1ca594c5993a",
+      "name": "Edit an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a44707a-02df-44cd-aa74-6376323a1af6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4752,
+        -1088
+      ],
+      "id": "0eea9896-5127-42c8-b47d-914618c50182",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        6288,
+        -960
+      ],
+      "id": "982d951a-be28-46aa-b7ca-2e2c61db88e9",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2816,
+        0
+      ],
+      "id": "d04aaac1-c6a5-4c1e-b826-c96d327eae9f",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $json.api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Old Money style rules\"\n        }\n      ]\n    }\n  ],\n  \"tools\": [\n    {\n      \"fileSearch\": {\n        \"fileSearchStoreNames\": [\"{{ $json.store_name }}\"]\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2960,
+        0
+      ],
+      "id": "7a5d0e1e-d047-4778-bb70-935a69594193",
+      "name": "search_documents1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional fashion stylist AI specialized in structured outfit construction.\n\nBefore creating the outfit:\n1. Use the fileSearch tool to retrieve the official rules, principles, color logic, silhouette guidance and fabric recommendations for the style \"{{ $json.context.style }}\".\n2. Follow ONLY the rules found in the knowledge base.\n3. Do not invent aesthetic logic outside the retrieved style documentation.\n\nUSER CONTEXT:\n\nStyle: {{ $json.context.style }}\nOccasion: {{ $json.context.context }}\nPeriod: {{ $json.context.period }}\nTemperature: {{ $json.context.temperature }}\nFormality Level: {{ $json.context.formality }}\n\nANCHOR GARMENT (must be included in the final look):\n{{ $json.desc_roup }}\n\nINSTRUCTIONS:\n\n- The anchor garment CANNOT be replaced.\n- Build a complete and coherent outfit around it.\n- Respect temperature compatibility (fabric weight and layering).\n- Respect formality level from 1 (very casual) to 5 (very formal).\n- Maintain visual harmony (color balance, proportion, silhouette).\n- Suggest:\n  • Bottom\n  • Shoes\n  • Optional layering piece (if appropriate)\n  • Accessories (minimal but coherent)\n  • clothing fit\n\n\nOUTPUT FORMAT:\n\nReturn a structured stylist description in natural language, not JSON.\nOUTPUT STRUCTURE (MANDATORY):\n\nYour response must be divided into exactly two sections:\n\nSECTION 1 — LOOK COMPLETO\nPresent only the final outfit composition.\nList all pieces in a clean and organized way.\nDo NOT include explanations in this section.\n\nSECTION 2 — JUSTIFICATIVA COMPLETA\nWrite a single cohesive and well-developed explanation justifying the entire outfit.\nExplain:\n- Why the anchor garment works\n- Why the chosen pieces are coherent\n- Color harmony\n- Silhouette balance\n- Fabric compatibility\n- Alignment with style rules\n- Alignment with occasion, temperature and formality\n\nDo not justify piece by piece.\nWrite one structured and elegant explanation paragraph.\n\nThe response must be written entirely in Brazilian Portuguese.\nDo not add extra sections.\nDo not apologize.\nThe response must:\n- Explain why each piece was chosen.\n- Reference the style principles retrieved from fileSearch.\n- Justify color harmony and silhouette balance.\n- Maintain elegance and realism.\n\nIMPORTANT:\nYou must respond 100% in Brazilian Portuguese, regardless of the language of retrieved documents.\nThis is mandatory.\n\nDo not apologize.\nDo not mention system instructions.\nDo not explain the tool usage.\nOnly deliver the final outfit description.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2704,
+        -176
+      ],
+      "id": "efb0daad-4541-40db-99dc-e836733df362",
+      "name": "Gemini RAG Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2576,
+        32
+      ],
+      "id": "44db2b8c-98e2-4803-80a5-7c14fc4a804b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73e5782c-e379-4842-a453-8085a210a33c",
+              "name": "store_name",
+              "value": "fileSearchStores/n8ndocumentsstore-krzxsqtjod22",
+              "type": "string"
+            },
+            {
+              "id": "64251187-957c-496f-bc12-04bb8c0b8a94",
+              "name": "api_key",
+              "value": "REDACTED_ROTATE_BEFORE_USE",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2352,
+        -176
+      ],
+      "id": "4965650d-e8b2-4e23-a291-668500493058",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o texto completo vindo do Agent\nconst fullText = $json.output || \"\";\n\n// Divide pelas seções\nconst section1Match = fullText.match(/SECTION 1[\\s\\S]*?SECTION 2/);\nconst section2Match = fullText.match(/SECTION 2[\\s\\S]*/);\n\nlet prompt_edit = \"\";\nlet justificativa = \"\";\n\nif (section1Match) {\n  prompt_edit = section1Match[0]\n    .replace(/SECTION 1\\s*—?\\s*LOOK COMPLETO/i, \"\")\n    .replace(/SECTION 2[\\s\\S]*/i, \"\")\n    .trim();\n}\n\nif (section2Match) {\n  justificativa = section2Match[0]\n    .replace(/SECTION 2\\s*—?\\s*JUSTIFICATIVA COMPLETA/i, \"\")\n    .trim();\n}\n\nreturn [{\n  json: {\n    ...$json,\n    prompt_edit,\n    justificativa\n  },\n  binary: $binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        -176
+      ],
+      "id": "977709f7-9c9a-4aed-bad0-9224372cabed",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a92e1a0-ee0a-4778-8354-01dc638e08fe",
+              "name": "prompt_edit",
+              "value": "={{ $json.prompt_edit }}",
+              "type": "string"
+            },
+            {
+              "id": "3e80012a-ccf0-4b7c-834c-9dc8438597e6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3328,
+        -176
+      ],
+      "id": "9b1bcd04-92a5-49b8-9ec9-19222e829262",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3536,
+        -192
+      ],
+      "id": "253a9ea9-66a5-41cc-b84b-f9884c0b28e5",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet finalJson = {};\nlet finalBinary = {};\n\nfor (const item of items) {\n  if (item.json) {\n    finalJson = { ...finalJson, ...item.json };\n  }\n\n  if (item.binary) {\n    finalBinary = { ...finalBinary, ...item.binary };\n  }\n}\n\nreturn [{\n  json: finalJson,\n  binary: finalBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        -192
+      ],
+      "id": "fc040fb6-7ad1-4b21-a8e9-3de536975c4d",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image (Nano Banana)"
+        },
+        "prompt": "=Você é um stylist digital profissional do AI Look.\n\nSua tarefa é gerar UMA imagem ultrarrealista de um look completo, obedecendo rigorosamente às regras abaixo.\n\n1️⃣ IDENTIDADE — PRIORIDADE ABSOLUTA\n\nUse a imagem {{ $binary.image_base }} como base obrigatória.\n\nA pessoa deve permanecer 100% idêntica.\n\nÉ proibido alterar:\n\nrosto\n\ntraços faciais\n\nnariz, boca, olhos, sobrancelhas\n\ntom e textura real da pele\n\nidade aparente\n\npeso corporal\n\nproporções\n\nsilhueta\n\npostura natural\n\ncabelo (cor, textura, comprimento, estilo)\n\n❌ Não afinar\n❌ Não rejuvenescer\n❌ Não aplicar efeito de beleza\n❌ Não suavizar pele\n❌ Não modificar biotipo\n❌ Não reinterpretar identidade\n\nA pessoa final deve ser claramente reconhecível como a mesma da imagem original.\n\nA imagem base tem prioridade máxima sobre qualquer outra referência\n\n2️⃣ PEÇA ÂNCORA — OBRIGATÓRIA\n\nA peça presente em {{ $binary.image_reference }}:\n\nDeve ser utilizada exatamente como está\n\nNão pode ser alterada\n\nNão pode ser substituída\n\nNão pode ser reinterpretada\n\nTodo o look deve ser construído para harmonizar com ela.\n\n3️⃣ DIRETRIZ DE ESTILO\n\nA construção do look deve seguir EXCLUSIVAMENTE as instruções abaixo:\n\n{{ $json.prompt_edit }}\n\nNão adicionar conceitos externos.\nNão inventar peças fora da proposta.\nNão misturar estilos se não estiver explícito.\n\n4️⃣ CONSTRUÇÃO DO LOOK\n\nMonte o look completo respeitando:\n\nCoerência visual\n\nHarmonia de cores\n\nCompatibilidade de materiais\n\nProporção real do corpo\n\nCaimento natural\n\nSofisticação equilibrada\n\nVisual usável na vida real\n\nNada exagerado.\nNada fantasioso.\nNada conceitual demais.\n\n5️⃣ ESTÉTICA DA IMAGEM\n\nFotografia ultrarrealista\n\nIluminação natural\n\nTextura real de tecido\n\nCenário neutro ou levemente contextual\n\nSem distrações\n\nSem texto na imagem\n\nSem marca d’água\n\nSem legenda\n\n6️⃣ REGRA FINAL\n\nSe houver qualquer conflito entre estilização e preservação da identidade,\na preservação da identidade sempre vence.\n\n7️⃣ EXECUÇÃO\n\nUse como referência principal:\n\n{{ $json.prompt_edit }}\n\nGere apenas a imagem final.\n\nNão escreva texto.\nNão explique.\nNão descreva.",
+        "images": {
+          "values": [
+            {
+              "binaryPropertyName": "image_base"
+            },
+            {
+              "binaryPropertyName": "image_reference"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        4208,
+        -192
+      ],
+      "id": "c4c7bbfc-bcbf-43cb-bfe6-27406b3ee521",
+      "name": "Edit an image1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a44707a-02df-44cd-aa74-6376323a1af6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4320,
+        -336
+      ],
+      "id": "0bf7463d-cfd7-431f-aa7a-3da42631d242",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4480,
+        -208
+      ],
+      "id": "0b613c1b-1335-4c46-a85e-4768b7b17f20",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet finalJson = {};\nlet finalBinary = {};\n\nfor (const item of items) {\n  if (item.json) {\n    finalJson = { ...finalJson, ...item.json };\n  }\n\n  if (item.binary) {\n    finalBinary = { ...finalBinary, ...item.binary };\n  }\n}\n\nreturn [{\n  json: finalJson,\n  binary: finalBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4672,
+        -208
+      ],
+      "id": "42d02a0c-1fb4-46a8-8275-14d3c94a3afc",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2896,
+        800
+      ],
+      "id": "81b11263-30ea-40d0-9f54-fc4e98495076",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $json.api_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Old Money style rules\"\n        }\n      ]\n    }\n  ],\n  \"tools\": [\n    {\n      \"fileSearch\": {\n        \"fileSearchStoreNames\": [\"{{ $json.store_name }}\"]\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        3040,
+        800
+      ],
+      "id": "da4c6d20-0e14-4bd6-9a0d-464b4ec1cca5",
+      "name": "search_documents2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional fashion stylist AI specialized in structured outfit construction.\n\nBefore creating the outfit:\n1. Use the fileSearch tool to retrieve the official rules, principles, color logic, silhouette guidance and fabric recommendations for the style \"{{ $json.context.style }}\".\n2. Follow ONLY the rules found in the knowledge base.\n3. Do not invent aesthetic logic outside the retrieved style documentation.\n\nUSER CONTEXT:\n\nStyle: {{ $json.context.style }}\nOccasion: {{ $json.context.context }}\nPeriod: {{ $json.context.period }}\nTemperature: {{ $json.context.temperature }}\nFormality Level: {{ $json.context.formality }}\n\nANCHOR GARMENT (must be included in the final look):\n{{ $json.desc_roup }}\n\nINSTRUCTIONS:\n\n- The anchor garment CANNOT be replaced.\n- Build a complete and coherent outfit around it.\n- Respect temperature compatibility (fabric weight and layering).\n- Respect formality level from 1 (very casual) to 5 (very formal).\n- Maintain visual harmony (color balance, proportion, silhouette).\n- Suggest:\n  • Bottom\n  • Shoes\n  • Optional layering piece (if appropriate)\n  • Accessories (minimal but coherent)\n  • clothing fit\n\n\nOUTPUT FORMAT:\n\nReturn a structured stylist description in natural language, not JSON.\nOUTPUT STRUCTURE (MANDATORY):\n\nYour response must be divided into exactly two sections:\n\nSECTION 1 — LOOK COMPLETO\nPresent only the final outfit composition.\nList all pieces in a clean and organized way.\nDo NOT include explanations in this section.\n\nSECTION 2 — JUSTIFICATIVA COMPLETA\nWrite a single cohesive and well-developed explanation justifying the entire outfit.\nExplain:\n- Why the anchor garment works\n- Why the chosen pieces are coherent\n- Color harmony\n- Silhouette balance\n- Fabric compatibility\n- Alignment with style rules\n- Alignment with occasion, temperature and formality\n\nDo not justify piece by piece.\nWrite one structured and elegant explanation paragraph.\n\nThe response must be written entirely in Brazilian Portuguese.\nDo not add extra sections.\nDo not apologize.\nThe response must:\n- Explain why each piece was chosen.\n- Reference the style principles retrieved from fileSearch.\n- Justify color harmony and silhouette balance.\n- Maintain elegance and realism.\n\nIMPORTANT:\nYou must respond 100% in Brazilian Portuguese, regardless of the language of retrieved documents.\nThis is mandatory.\n\nDo not apologize.\nDo not mention system instructions.\nDo not explain the tool usage.\nOnly deliver the final outfit description.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2784,
+        624
+      ],
+      "id": "ca803de3-2c49-425b-950f-d713956fed09",
+      "name": "Gemini RAG Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2656,
+        832
+      ],
+      "id": "18091217-430e-4bdd-b61e-f4a9a74a5911",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73e5782c-e379-4842-a453-8085a210a33c",
+              "name": "store_name",
+              "value": "fileSearchStores/n8ndocumentsstore-krzxsqtjod22",
+              "type": "string"
+            },
+            {
+              "id": "64251187-957c-496f-bc12-04bb8c0b8a94",
+              "name": "api_key",
+              "value": "REDACTED_ROTATE_BEFORE_USE",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2432,
+        624
+      ],
+      "id": "8d4ffcbc-d047-4010-8dc5-461e27666dcf",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o texto completo vindo do Agent\nconst fullText = $json.output || \"\";\n\n// Divide pelas seções\nconst section1Match = fullText.match(/SECTION 1[\\s\\S]*?SECTION 2/);\nconst section2Match = fullText.match(/SECTION 2[\\s\\S]*/);\n\nlet prompt_edit = \"\";\nlet justificativa = \"\";\n\nif (section1Match) {\n  prompt_edit = section1Match[0]\n    .replace(/SECTION 1\\s*—?\\s*LOOK COMPLETO/i, \"\")\n    .replace(/SECTION 2[\\s\\S]*/i, \"\")\n    .trim();\n}\n\nif (section2Match) {\n  justificativa = section2Match[0]\n    .replace(/SECTION 2\\s*—?\\s*JUSTIFICATIVA COMPLETA/i, \"\")\n    .trim();\n}\n\nreturn [{\n  json: {\n    ...$json,\n    prompt_edit,\n    justificativa\n  },\n  binary: $binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        624
+      ],
+      "id": "cf02dad1-5b8e-40ab-86a3-93bdfb41d499",
+      "name": "Code in JavaScript8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a92e1a0-ee0a-4778-8354-01dc638e08fe",
+              "name": "prompt_edit",
+              "value": "={{ $json.prompt_edit }}",
+              "type": "string"
+            },
+            {
+              "id": "3e80012a-ccf0-4b7c-834c-9dc8438597e6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3408,
+        624
+      ],
+      "id": "72dd429d-9061-470e-97f0-2c89aaf8994d",
+      "name": "Edit Fields8"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3616,
+        608
+      ],
+      "id": "a82903a8-64d8-4d2f-a16b-93a6fdeb5486",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet finalJson = {};\nlet finalBinary = {};\n\nfor (const item of items) {\n  if (item.json) {\n    finalJson = { ...finalJson, ...item.json };\n  }\n\n  if (item.binary) {\n    finalBinary = { ...finalBinary, ...item.binary };\n  }\n}\n\nreturn [{\n  json: finalJson,\n  binary: finalBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        608
+      ],
+      "id": "e6b03f0f-b381-45f2-8eb3-e12ebbc4097a",
+      "name": "Code in JavaScript9"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image (Nano Banana)"
+        },
+        "prompt": "=Você é um stylist digital profissional do AI Look.\n\nSua tarefa é gerar UMA imagem ultrarrealista de um look completo, obedecendo rigorosamente às regras abaixo.\n\n1️⃣ IDENTIDADE — PRIORIDADE ABSOLUTA\n\nUse a imagem {{ $binary.image_base }} como base obrigatória.\n\nA pessoa deve permanecer 100% idêntica.\n\nÉ proibido alterar:\n\nrosto\n\ntraços faciais\n\nnariz, boca, olhos, sobrancelhas\n\ntom e textura real da pele\n\nidade aparente\n\npeso corporal\n\nproporções\n\nsilhueta\n\npostura natural\n\ncabelo (cor, textura, comprimento, estilo)\n\n❌ Não afinar\n❌ Não rejuvenescer\n❌ Não aplicar efeito de beleza\n❌ Não suavizar pele\n❌ Não modificar biotipo\n❌ Não reinterpretar identidade\n\nA pessoa final deve ser claramente reconhecível como a mesma da imagem original.\n\nA imagem base tem prioridade máxima sobre qualquer outra referência\n\n2️⃣ PEÇA ÂNCORA — OBRIGATÓRIA\n\nA peça presente em {{ $binary.image_reference }}:\n\nDeve ser utilizada exatamente como está\n\nNão pode ser alterada\n\nNão pode ser substituída\n\nNão pode ser reinterpretada\n\nTodo o look deve ser construído para harmonizar com ela.\n\n3️⃣ DIRETRIZ DE ESTILO\n\nA construção do look deve seguir EXCLUSIVAMENTE as instruções abaixo:\n\n{{ $json.prompt_edit }}\n\nNão adicionar conceitos externos.\nNão inventar peças fora da proposta.\nNão misturar estilos se não estiver explícito.\n\n4️⃣ CONSTRUÇÃO DO LOOK\n\nMonte o look completo respeitando:\n\nCoerência visual\n\nHarmonia de cores\n\nCompatibilidade de materiais\n\nProporção real do corpo\n\nCaimento natural\n\nSofisticação equilibrada\n\nVisual usável na vida real\n\nNada exagerado.\nNada fantasioso.\nNada conceitual demais.\n\n5️⃣ ESTÉTICA DA IMAGEM\n\nFotografia ultrarrealista\n\nIluminação natural\n\nTextura real de tecido\n\nCenário neutro ou levemente contextual\n\nSem distrações\n\nSem texto na imagem\n\nSem marca d’água\n\nSem legenda\n\n6️⃣ REGRA FINAL\n\nSe houver qualquer conflito entre estilização e preservação da identidade,\na preservação da identidade sempre vence.\n\n7️⃣ EXECUÇÃO\n\nUse como referência principal:\n\n{{ $json.prompt_edit }}\n\nGere apenas a imagem final.\n\nNão escreva texto.\nNão explique.\nNão descreva.",
+        "images": {
+          "values": [
+            {
+              "binaryPropertyName": "image_base"
+            },
+            {
+              "binaryPropertyName": "image_reference"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        4288,
+        608
+      ],
+      "id": "0cae6f8e-418c-48d0-a793-c8ed6491406c",
+      "name": "Edit an image2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tf06ftYu7cj0QewA",
+          "name": "try2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a44707a-02df-44cd-aa74-6376323a1af6",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4400,
+        464
+      ],
+      "id": "7bb12c59-b7cf-444c-959e-6e831c42fb4b",
+      "name": "Edit Fields9"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4560,
+        592
+      ],
+      "id": "13c9cc3d-8247-4582-8505-0e9065f40372",
+      "name": "Merge6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet finalJson = {};\nlet finalBinary = {};\n\nfor (const item of items) {\n  if (item.json) {\n    finalJson = { ...finalJson, ...item.json };\n  }\n\n  if (item.binary) {\n    finalBinary = { ...finalBinary, ...item.binary };\n  }\n}\n\nreturn [{\n  json: finalJson,\n  binary: finalBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        592
+      ],
+      "id": "f5bb115d-6adf-4e65-8d60-a8c07f744029",
+      "name": "Code in JavaScript10"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7c2c819e-cf4f-48b5-96b2-9c567a2405a2",
+              "name": "justificativa",
+              "value": "={{ $json.justificativa }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "edited",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7152,
+        -960
+      ],
+      "id": "7dbde550-dd64-4997-8725-cf3c84bee3a2",
+      "name": "Edit Fields10"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "binaryPropertyName": "edited",
+        "destinationKey": "edited",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        5072,
+        -944
+      ],
+      "id": "ce74a803-ffb3-479c-950d-042e590b6532",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cria 3 variações do mesmo input\nconst base = $input.first();\n\nreturn [1,2,3].map(i => ({\n  json: {\n    ...base.json,\n    variation: i\n  },\n  binary: base.binary\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        -880
+      ],
+      "id": "78cd9438-3068-4c97-8e1d-f82b31e9f1a5",
+      "name": "Code in JavaScript11"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prompts = $input.all(0)\n  .filter(item => item.json.prompt_edit)\n  .slice(0, 3); // garante máximo 3\n\nconst base = $input.all(1)[0];\n\nreturn prompts.map(item => ({\n  json: item.json,\n  binary: base.binary\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        -944
+      ],
+      "id": "06269807-40d8-4c41-aef3-3420b999b315",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet justificativas = [];\nlet edits = [];\n\n// Separar os dados\nitems.forEach((item, i) => {\n  if (item.json.justificativa) {\n    justificativas.push({\n      index: i,\n      justificativa: item.json.justificativa\n    });\n  }\n\n  if (item.json.edited) {\n    edits.push({\n      index: i,\n      edited: item.json.edited\n    });\n  }\n});\n\n// ⚠️ Ajuste aqui se quiser casar por ordem real\nconst resultado = [];\n\nfor (let i = 0; i < justificativas.length; i++) {\n  resultado.push({\n    json: {\n      justificativa: justificativas[i]?.justificativa || null,\n      edited: edits[i]?.edited || null\n    }\n  });\n}\n\nreturn resultado;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6496,
+        -960
+      ],
+      "id": "2fa7db90-5adf-49f9-95b9-28ad58d0701a",
+      "name": "Code in JavaScript4"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Gemini RAG Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_documents": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gemini RAG Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini RAG Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini RAG Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit an image": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Gemini RAG Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_documents1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gemini RAG Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini RAG Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini RAG Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Gemini RAG Agent1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Edit an image1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit an image1": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields6": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "Gemini RAG Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_documents2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gemini RAG Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini RAG Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini RAG Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Gemini RAG Agent2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript8": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields8": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript9": {
+      "main": [
+        [
+          {
+            "node": "Edit an image2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit an image2": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields9": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript10": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript11": {
+      "main": [
+        [
+          {
+            "node": "Gemini RAG Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Edit an image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Webhook": [
+      {
+        "headers": {
+          "host": "automacoes-n8n.infrassys.com",
+          "x-real-ip": "177.85.13.204",
+          "x-forwarded-for": "177.85.13.204",
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "automacoes-n8n.infrassys.com",
+          "x-forwarded-port": "443",
+          "connection": "upgrade",
+          "content-length": "701161",
+          "sec-ch-ua-platform": "\"Windows\"",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+          "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+          "content-type": "multipart/form-data; boundary=----WebKitFormBoundary1kmvTdPuNHBWPO2M",
+          "sec-ch-ua-mobile": "?0",
+          "accept": "*/*",
+          "origin": "http://127.0.0.1:5502",
+          "sec-fetch-site": "cross-site",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-dest": "empty",
+          "referer": "http://127.0.0.1:5502/",
+          "accept-encoding": "gzip, deflate, br, zstd",
+          "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7,ar;q=0.6",
+          "priority": "u=1, i"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "prompt": "Modo: Gerar Look, Momento: Dia, Clima: Calor, Nível de Formalidade: 1, Estilo: Old Money, Priorizar meu armário: on",
+          "mode": "generate"
+        },
+        "webhookUrl": "https://automacoes-n8n.infrassys.com/webhook/ailooks",
+        "executionMode": "production"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "807138b7646fc3b35fe8d414d5cd61eb6889d95886d54e7341e1a712e0242dc1"
+  }
+}
