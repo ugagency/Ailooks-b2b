@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel do Catálogo | AI Looks</title>
+
+  <!--
+    Painel do Catálogo — ferramenta de demonstração, descartável.
+    Só CRUD de catalogo_loja + upload de imagem. Uma loja só (LOJA_ID fixo).
+
+    Acesso: Supabase Auth (e-mail + senha), com a escrita no banco liberada
+    apenas para usuários autenticados. Ver supabase/02_painel_policies.sql.
+    NENHUMA service role key é usada aqui — só a chave anon, que é pública
+    por design e protegida pelo RLS.
+
+    Não depende de script.js / totem.js / style.css (esses são do totem).
+  -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #1A1A1A;
+      --secondary: #C78D75;
+      --bg: #F9F9F7;
+      --surface: #FFFFFF;
+      --muted: #8E8E93;
+      --border: #E5E5E5;
+      --erro: #DC2626;
+      --ok: #15803D;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; margin: 0; }
+
+    .rotulo {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    /* ---------- botões ---------- */
+    button { font-family: inherit; font-size: inherit; cursor: pointer; }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+
+    .btn-primario { background: var(--primary); color: #fff; }
+    .btn-primario:hover { background: var(--secondary); }
+    .btn-primario:disabled { opacity: .5; cursor: not-allowed; background: var(--primary); }
+
+    .btn-neutro { background: var(--bg); color: var(--primary); border: 1px solid var(--border); }
+    .btn-neutro:hover { background: #EFEFEC; }
+
+    .btn-perigo { background: var(--erro); color: #fff; }
+    .btn-perigo:hover { background: #B91C1C; }
+
+    .btn-mini {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--primary);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .btn-mini:hover { border-color: var(--secondary); color: var(--secondary); }
+    .btn-mini.perigo:hover { border-color: var(--erro); color: var(--erro); }
+
+    /* ---------- campos ---------- */
+    .campo { display: flex; flex-direction: column; gap: 6px; }
+
+    input[type=text], input[type=number], input[type=email], input[type=password], select {
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--primary);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px;
+      width: 100%;
+    }
+
+    input:focus, select:focus { outline: 2px solid rgba(199, 141, 117, .45); outline-offset: 1px; }
+    input:read-only { background: #EFEFEC; color: var(--muted); }
+
+    .dica { font-size: 11px; color: var(--muted); }
+    .erro-campo { font-size: 11px; color: var(--erro); min-height: 14px; }
+
+    /* ---------- login ---------- */
+    #tela-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+    #tela-login .cartao {
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, .12);
+      width: 100%;
+      max-width: 380px;
+      overflow: hidden;
+    }
+
+    #tela-login .topo { background: var(--primary); color: #fff; padding: 26px; text-align: center; }
+    #tela-login .topo h1 { font-size: 26px; margin-bottom: 6px; }
+    #tela-login .topo p { margin: 0; font-size: 12px; color: #C9C9C9; }
+    #tela-login form { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+
+    .aviso-erro {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: var(--erro);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    /* ---------- painel ---------- */
+    #tela-painel { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .cabecalho {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .cabecalho h1 { font-size: 30px; }
+
+    .selo {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .usuario { display: flex; align-items: center; gap: 12px; }
+    .usuario span { font-size: 12px; color: var(--muted); }
+
+    .barra {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .filtro {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .filtro:hover { border-color: var(--secondary); color: var(--secondary); }
+    .filtro[aria-pressed=true] { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ---------- tabela ---------- */
+    .quadro {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .rolagem { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; min-width: 780px; }
+
+    th {
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 14px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td { padding: 12px 16px; border-bottom: 1px solid #F1F1EF; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr.inativa { opacity: .55; }
+
+    .miniatura {
+      width: 44px;
+      height: 58px;
+      object-fit: cover;
+      border-radius: 7px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    .sku { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12px; color: var(--muted); }
+    .nome { font-weight: 700; }
+    .acoes { display: flex; gap: 6px; justify-content: flex-end; }
+    .vazio { padding: 48px 16px; text-align: center; color: var(--muted); font-style: italic; }
+
+    /* interruptor ativo/inativo */
+    .chave { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+    .chave input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .chave .trilho {
+      width: 38px;
+      height: 21px;
+      border-radius: 999px;
+      background: #D4D4D2;
+      position: relative;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+
+    .chave .trilho::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .15s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+    }
+
+    .chave input:checked + .trilho { background: var(--ok); }
+    .chave input:checked + .trilho::after { transform: translateX(17px); }
+    .chave input:focus-visible + .trilho { outline: 2px solid var(--secondary); outline-offset: 2px; }
+    .chave .texto { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+
+    /* ---------- modais ---------- */
+    .fundo-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 26, .45);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 60;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .35);
+    }
+
+    .modal .topo-modal {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal .topo-modal h2 { font-size: 21px; }
+    .modal .corpo { padding: 22px 24px; }
+    .modal .rodape { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+    .fechar { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--muted); padding: 0 4px; }
+    .fechar:hover { color: var(--primary); }
+
+    .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grade .largo { grid-column: 1 / -1; }
+
+    @media (max-width: 560px) { .grade { grid-template-columns: 1fr; } }
+
+    .caixa-imagem { display: flex; gap: 14px; align-items: flex-start; }
+
+    #form-preview {
+      width: 84px;
+      height: 112px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .marcador { display: flex; align-items: center; gap: 8px; }
+    .marcador input { width: 16px; height: 16px; accent-color: var(--secondary); }
+
+    /* ---------- avisos flutuantes ---------- */
+    #avisos { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 80; }
+
+    .aviso {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      max-width: 340px;
+      box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .4);
+      animation: entrar .18s ease-out;
+    }
+
+    .aviso.erro { background: var(--erro); }
+    .aviso.ok { background: var(--ok); }
+
+    @keyframes entrar { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+
+<body>
+
+  <!-- avisos (substituem alert()) -->
+  <div id="avisos" aria-live="polite"></div>
+
+  <!-- ============================ LOGIN ============================ -->
+  <section id="tela-login" hidden>
+    <div class="cartao">
+      <div class="topo">
+        <h1>Painel do Catálogo</h1>
+        <p>AI Looks &middot; ferramenta de demonstração</p>
+      </div>
+      <form id="form-login">
+        <div id="login-erro" class="aviso-erro" hidden></div>
+        <div class="campo">
+          <label class="rotulo" for="login-email">E-mail</label>
+          <input type="email" id="login-email" autocomplete="username" required>
+        </div>
+        <div class="campo">
+          <label class="rotulo" for="login-senha">Senha</label>
+          <input type="password" id="login-senha" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primario" id="btn-entrar">Entrar</button>
+        <p class="dica">Use o usuário criado no painel do Supabase para esta loja.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============================ PAINEL ============================ -->
+  <main id="tela-painel" hidden>
+    <div class="cabecalho">
+      <div>
+        <span class="selo">Demonstração</span>
+        <h1>Catálogo da loja</h1>
+        <p class="dica" style="margin:6px 0 0">Peças disponíveis para o totem. Peça inativa some do totem e continua aqui.</p>
+      </div>
+      <div class="usuario">
+        <span id="usuario-email"></span>
+        <button class="btn btn-neutro" id="btn-sair">Sair</button>
+      </div>
+    </div>
+
+    <div class="barra">
+      <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoria"></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <span class="rotulo" id="contador">0 peças</span>
+        <button class="btn btn-primario" id="btn-nova">+ Nova peça</button>
+      </div>
+    </div>
+
+    <div class="quadro">
+      <div class="rolagem">
+        <table>
+          <thead>
+            <tr>
+              <th>Imagem</th>
+              <th>SKU</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Estoque</th>
+              <th>Ativo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="corpo-tabela"></tbody>
+        </table>
+      </div>
+      <div class="vazio" id="estado-vazio" hidden></div>
+    </div>
+  </main>
+
+  <!-- ======================= MODAL FORMULÁRIO ======================= -->
+  <div class="fundo-modal" id="modal-form" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-form">
+      <div class="topo-modal">
+        <h2 id="titulo-form">Nova peça</h2>
+        <button class="fechar" type="button" id="btn-fechar-form" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="form-peca">
+        <div class="corpo">
+          <div id="form-erro" class="aviso-erro" hidden style="margin-bottom:14px"></div>
+
+          <div class="grade">
+            <div class="campo">
+              <label class="rotulo" for="f-sku">SKU</label>
+              <input type="text" id="f-sku" maxlength="40" placeholder="TOP-004">
+              <span class="erro-campo" id="e-sku"></span>
+            </div>
+
+            <div class="campo">
+              <label class="rotulo" for="f-categoria">Categoria</label>
+              <select id="f-categoria"></select>
+              <span class="erro-campo"></span>
+            </div>
+
+            <div class="campo largo">
+              <label class="rotulo" for="f-nome">Nome</label>
+              <input type="text" id="f-nome" maxlength="120" placeholder="Camisa Oxford Branca">
+              <span class="erro-campo" id="e-nome"></span>
+            </div>
+
+            <div class="campo">
+              <label class="rotulo" for="f-preco">Preço (R$)</label>
+              <input type="number" id="f-preco" min="0" step="0.01" placeholder="249,00">
+              <span class="erro-campo" id="e-preco"></span>
+            </div>
+
+            <div class="campo">
+              <label class="rotulo" for="f-estoque">Estoque</label>
+              <input type="number" id="f-estoque" min="0" step="1" value="0">
+              <span class="erro-campo" id="e-estoque"></span>
+            </div>
+
+            <div class="campo">
+              <label class="rotulo" for="f-ordem">Ordem na categoria</label>
+              <input type="number" id="f-ordem" min="0" step="1" value="0">
+              <span class="erro-campo" id="e-ordem"></span>
+            </div>
+
+            <div class="campo" style="justify-content:flex-end">
+              <label class="marcador">
+                <input type="checkbox" id="f-ativo" checked>
+                <span class="rotulo" style="color:var(--primary)">Ativa no totem</span>
+              </label>
+            </div>
+
+            <div class="campo largo">
+              <label class="rotulo" for="f-imagem">Imagem da peça</label>
+              <div class="caixa-imagem">
+                <img id="form-preview" alt="">
+                <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                  <input type="file" id="f-imagem" accept="image/png,image/jpeg,image/webp">
+                  <span class="dica" id="status-imagem">JPG e WEBP são convertidos para PNG. O arquivo vai para o
+                    bucket como &lt;SKU&gt;.png.</span>
+                  <span class="erro-campo" id="e-imagem"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rodape">
+          <button type="button" class="btn btn-neutro" id="btn-cancelar-form">Cancelar</button>
+          <button type="submit" class="btn btn-primario" id="btn-salvar">Salvar peça</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================== MODAL CONFIRMAÇÃO ====================== -->
+  <div class="fundo-modal" id="modal-confirmar" hidden>
+    <div class="modal" style="max-width:420px" role="alertdialog" aria-modal="true" aria-labelledby="titulo-confirmar">
+      <div class="topo-modal">
+        <h2 id="titulo-confirmar">Excluir peça</h2>
+      </div>
+      <div class="corpo">
+        <p id="texto-confirmar" style="margin:0;line-height:1.6"></p>
+      </div>
+      <div class="rodape">
+        <button type="button" class="btn btn-neutro" id="btn-nao">Cancelar</button>
+        <button type="button" class="btn btn-perigo" id="btn-sim">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* =================================================================
+       Painel do Catálogo — AI Looks (Demo Totem)
+       CRUD de catalogo_loja + upload de imagem no bucket "catalogo".
+       Autenticação: Supabase Auth. Escrita liberada só para autenticados
+       pelas policies em supabase/02_painel_policies.sql.
+    ================================================================= */
+
+    const SUPABASE_URL = 'https://agzknkebggfytlqcsuuu.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnemtua2ViZ2dmeXRscWNzdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDMzODUsImV4cCI6MjA4NjM3OTM4NX0.c2pFotvELY6ZopuQSMlzqUwluKc0HenIAvWuZVclQz0';
+
+    // Uma loja só nesta demo. Mesmo id usado pelo totem (totem.js).
+    const LOJA_ID = '00000000-0000-0000-0000-000000000001';
+    const TABELA = 'catalogo_loja';
+    const BUCKET = 'catalogo';
+
+    // Ordem canônica das categorias — a mesma do totem, não a alfabética.
+    const CATEGORIAS = [
+      { valor: 'top', rotulo: 'Parte de cima' },
+      { valor: 'bottom', rotulo: 'Parte de baixo' },
+      { valor: 'calcado', rotulo: 'Calçados' },
+      { valor: 'acessorio', rotulo: 'Acessórios' },
+    ];
+    const ORDEM_CATEGORIAS = CATEGORIAS.map(c => c.valor);
+    const TIPOS_ACEITOS = ['image/png', 'image/jpeg', 'image/webp'];
+    // SKU vira nome de arquivo (<SKU>.png), então fica restrito a caracteres seguros.
+    const SKU_VALIDO = /^[A-Za-z0-9._-]+$/;
+
+    let cliente = null;
+    let pecas = [];
+    let filtroCategoria = 'todas';
+    let editando = null;      // peça em edição, ou null quando é criação
+    let imagemPendente = null; // File escolhido que ainda não subiu (SKU faltando)
+    let imagemUrl = null;      // URL pública já definida para a peça do formulário
+
+    const $ = id => document.getElementById(id);
+    const esc = t => String(t ?? '').replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+    const rotuloCategoria = v => (CATEGORIAS.find(c => c.valor === v) || {}).rotulo || v;
+    const emReais = centavos => (Number(centavos || 0) / 100)
+      .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    /* ---------------------- avisos (sem alert) ---------------------- */
+    function aviso(mensagem, tipo = 'ok') {
+      const el = document.createElement('div');
+      el.className = 'aviso ' + tipo;
+      el.textContent = mensagem;
+      $('avisos').appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+      return el;
+    }
+
+    /* ------------------- confirmação (sem confirm) ------------------ */
+    function confirmar(texto) {
+      return new Promise(resolve => {
+        $('texto-confirmar').textContent = texto;
+        $('modal-confirmar').hidden = false;
+        const encerrar = resposta => {
+          $('modal-confirmar').hidden = true;
+          $('btn-sim').onclick = null;
+          $('btn-nao').onclick = null;
+          resolve(resposta);
+        };
+        $('btn-sim').onclick = () => encerrar(true);
+        $('btn-nao').onclick = () => encerrar(false);
+      });
+    }
+
+    /* ============================ AUTH ============================= */
+    async function entrar(ev) {
+      ev.preventDefault();
+      const btn = $('btn-entrar');
+      $('login-erro').hidden = true;
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+      try {
+        const { error } = await cliente.auth.signInWithPassword({
+          email: $('login-email').value.trim(),
+          password: $('login-senha').value,
+        });
+        if (error) throw error;
+      } catch (e) {
+        const msg = /invalid login/i.test(e.message || '')
+          ? 'E-mail ou senha incorretos.'
+          : (e.message || 'Não foi possível entrar.');
+        $('login-erro').textContent = msg;
+        $('login-erro').hidden = false;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }
+
+    async function sair() {
+      await cliente.auth.signOut();
+    }
+
+    function aplicarSessao(sessao) {
+      const logado = !!sessao;
+      $('tela-login').hidden = logado;
+      $('tela-painel').hidden = !logado;
+      if (logado) {
+        $('usuario-email').textContent = sessao.user?.email || '';
+        $('login-senha').value = '';
+        carregarPecas();
+      } else {
+        pecas = [];
+      }
+    }
+
+    /* ====================== LEITURA / LISTAGEM ===================== */
+    function ordenar(lista) {
+      const idx = c => {
+        const i = ORDEM_CATEGORIAS.indexOf(c);
+        return i === -1 ? ORDEM_CATEGORIAS.length : i;
+      };
+      return [...lista].sort((a, b) =>
+        idx(a.categoria) - idx(b.categoria) ||
+        (Number(a.ordem || 0) - Number(b.ordem || 0)) ||
+        String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR')
+      );
+    }
+
+    async function carregarPecas() {
+      try {
+        const { data, error } = await cliente.from(TABELA).select('*').eq('loja_id', LOJA_ID);
+        if (error) throw error;
+        pecas = ordenar(data || []);
+        renderTabela();
+      } catch (e) {
+        console.error(e);
+        aviso('Erro ao carregar o catálogo: ' + (e.message || e), 'erro');
+      }
+    }
+
+    function renderFiltros() {
+      const opcoes = [{ valor: 'todas', rotulo: 'Todas' }, ...CATEGORIAS];
+      $('filtros').innerHTML = '';
+      opcoes.forEach(o => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'filtro';
+        b.textContent = o.rotulo;
+        b.dataset.categoria = o.valor;
+        b.setAttribute('aria-pressed', String(filtroCategoria === o.valor));
+        b.onclick = () => { filtroCategoria = o.valor; renderFiltros(); renderTabela(); };
+        $('filtros').appendChild(b);
+      });
+    }
+
+    function renderTabela() {
+      const lista = filtroCategoria === 'todas'
+        ? pecas
+        : pecas.filter(p => p.categoria === filtroCategoria);
+
+      $('contador').textContent = lista.length === 1 ? '1 peça' : lista.length + ' peças';
+      const corpo = $('corpo-tabela');
+      corpo.innerHTML = '';
+
+      if (lista.length === 0) {
+        $('estado-vazio').hidden = false;
+        $('estado-vazio').textContent = pecas.length === 0
+          ? 'Nenhuma peça cadastrada. Use o botão "Nova peça" para começar.'
+          : 'Nenhuma peça nesta categoria.';
+        return;
+      }
+      $('estado-vazio').hidden = true;
+
+      lista.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = p.id;
+        tr.dataset.sku = p.sku;
+        if (!p.ativo) tr.classList.add('inativa');
+        tr.innerHTML = `
+          <td><img class="miniatura" src="${esc(p.imagem_url)}" alt="${esc(p.nome)}"></td>
+          <td class="sku">${esc(p.sku)}</td>
+          <td class="nome">${esc(p.nome)}</td>
+          <td>${esc(rotuloCategoria(p.categoria))}</td>
+          <td>${emReais(p.preco_centavos)}</td>
+          <td>${esc(p.estoque)}</td>
+          <td>
+            <label class="chave">
+              <input type="checkbox" class="alternar-ativo" ${p.ativo ? 'checked' : ''}
+                     aria-label="Ativar ou desativar ${esc(p.nome)}">
+              <span class="trilho"></span>
+              <span class="texto">${p.ativo ? 'Ativa' : 'Inativa'}</span>
+            </label>
+          </td>
+          <td>
+            <div class="acoes">
+              <button type="button" class="btn-mini editar">Editar</button>
+              <button type="button" class="btn-mini perigo excluir">Excluir</button>
+            </div>
+          </td>`;
+        tr.querySelector('.alternar-ativo').onchange = ev => alternarAtivo(p, ev.target);
+        tr.querySelector('.editar').onclick = () => abrirForm(p);
+        tr.querySelector('.excluir').onclick = () => excluirPeca(p);
+        corpo.appendChild(tr);
+      });
+    }
+
+    /* ==================== ATIVAR / DESATIVAR ====================== */
+    async function alternarAtivo(peca, caixa) {
+      const novo = caixa.checked;
+      caixa.disabled = true;
+      try {
+        const { error } = await cliente.from(TABELA).update({ ativo: novo }).eq('id', peca.id);
+        if (error) throw error;
+        peca.ativo = novo;
+        aviso(`"${peca.nome}" ${novo ? 'ativada' : 'desativada'}.`, 'ok');
+        renderTabela();
+      } catch (e) {
+        caixa.checked = !novo; // desfaz o toggle na tela
+        aviso('Não foi possível alterar: ' + (e.message || e), 'erro');
+      } finally {
+        caixa.disabled = false;
+      }
+    }
+
+    /* ========================== IMAGEM ============================ */
+    // JPG/JPEG/WEBP viram PNG antes de subir; PNG sobe como está.
+    async function converterParaPng(arquivo) {
+      if (arquivo.type === 'image/png') return arquivo;
+      const url = URL.createObjectURL(arquivo);
+      try {
+        const img = new Image();
+        await new Promise((ok, falha) => {
+          img.onload = ok;
+          img.onerror = () => falha(new Error('Não foi possível ler a imagem escolhida.'));
+          img.src = url;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        return await new Promise((ok, falha) => canvas.toBlob(
+          b => b ? ok(b) : falha(new Error('Falha ao converter a imagem para PNG.')), 'image/png'));
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // Sobe <SKU>.png na raiz do bucket, substituindo o que estiver lá.
+    async function subirImagem(sku, arquivo) {
+      const png = await converterParaPng(arquivo);
+      const caminho = `${sku}.png`;
+      const { error } = await cliente.storage.from(BUCKET)
+        .upload(caminho, png, { upsert: true, contentType: 'image/png' });
+      if (error) throw error;
+      const publica = cliente.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+      // O nome do arquivo é sempre o mesmo, então versiona a URL para não servir cache velho.
+      return `${publica}?v=${Date.now()}`;
+    }
+
+    async function removerImagem(sku) {
+      const { error } = await cliente.storage.from(BUCKET).remove([`${sku}.png`]);
+      if (error) throw error;
+    }
+
+    async function aoEscolherImagem(ev) {
+      const arquivo = ev.target.files && ev.target.files[0];
+      $('e-imagem').textContent = '';
+      if (!arquivo) return;
+
+      if (!TIPOS_ACEITOS.includes(arquivo.type)) {
+        $('e-imagem').textContent = 'Formato não aceito. Use PNG, JPG ou WEBP.';
+        ev.target.value = '';
+        return;
+      }
+
+      $('form-preview').src = URL.createObjectURL(arquivo); // preview antes do upload
+      imagemPendente = arquivo;
+
+      const sku = $('f-sku').value.trim();
+      if (!sku) {
+        $('status-imagem').textContent = 'Preencha o SKU: a imagem sobe como <SKU>.png ao salvar.';
+        return;
+      }
+      await enviarPendente(sku);
+    }
+
+    async function enviarPendente(sku) {
+      if (!imagemPendente) return;
+      $('status-imagem').textContent = 'Enviando imagem...';
+      $('btn-salvar').disabled = true;
+      try {
+        imagemUrl = await subirImagem(sku, imagemPendente);
+        $('form-preview').src = imagemUrl;  // preview depois do upload, já da URL pública
+        imagemPendente = null;
+        $('status-imagem').textContent = `Imagem enviada como ${sku}.png.`;
+      } catch (e) {
+        $('status-imagem').textContent = 'JPG e WEBP são convertidos para PNG.';
+        $('e-imagem').textContent = 'Falha ao enviar: ' + (e.message || e);
+        throw e;
+      } finally {
+        $('btn-salvar').disabled = false;
+      }
+    }
+
+    /* ========================= FORMULÁRIO ========================= */
+    function abrirForm(peca) {
+      editando = peca || null;
+      imagemPendente = null;
+      imagemUrl = peca ? peca.imagem_url : null;
+
+      $('titulo-form').textContent = peca ? 'Editar peça' : 'Nova peça';
+      $('form-erro').hidden = true;
+      ['e-sku', 'e-nome', 'e-preco', 'e-estoque', 'e-ordem', 'e-imagem'].forEach(id => $(id).textContent = '');
+
+      $('f-sku').value = peca ? peca.sku : '';
+      $('f-sku').readOnly = !!peca;  // SKU é chave junto com loja_id
+      $('f-nome').value = peca ? peca.nome : '';
+      $('f-categoria').value = peca ? peca.categoria : CATEGORIAS[0].valor;
+      $('f-preco').value = peca ? (Number(peca.preco_centavos || 0) / 100).toFixed(2) : '';
+      $('f-estoque').value = peca ? Number(peca.estoque || 0) : 0;
+      $('f-ordem').value = peca ? Number(peca.ordem || 0) : 0;
+      $('f-ativo').checked = peca ? !!peca.ativo : true;
+      $('f-imagem').value = '';
+      $('form-preview').removeAttribute('src');
+      if (imagemUrl) $('form-preview').src = imagemUrl;
+      $('status-imagem').textContent = peca
+        ? 'Escolher uma nova imagem substitui o arquivo no bucket.'
+        : 'JPG e WEBP são convertidos para PNG. O arquivo vai para o bucket como <SKU>.png.';
+
+      $('modal-form').hidden = false;
+      $('f-' + (peca ? 'nome' : 'sku')).focus();
+    }
+
+    function fecharForm() {
+      $('modal-form').hidden = true;
+      editando = null;
+      imagemPendente = null;
+      imagemUrl = null;
+    }
+
+    function validar() {
+      let ok = true;
+      const erro = (id, msg) => { $(id).textContent = msg; if (msg) ok = false; };
+
+      const sku = $('f-sku').value.trim();
+      const nome = $('f-nome').value.trim();
+      const preco = $('f-preco').value.trim();
+      const estoque = $('f-estoque').value.trim();
+      const ordem = $('f-ordem').value.trim();
+
+      erro('e-sku', '');
+      erro('e-nome', '');
+      erro('e-preco', '');
+      erro('e-estoque', '');
+      erro('e-ordem', '');
+      erro('e-imagem', '');
+
+      if (!sku) erro('e-sku', 'Informe o SKU.');
+      else if (!SKU_VALIDO.test(sku)) erro('e-sku', 'Use apenas letras, números, ponto, hífen ou underline.');
+      else if (!editando && pecas.some(p => p.sku.toLowerCase() === sku.toLowerCase()))
+        erro('e-sku', 'Já existe uma peça com este SKU.');
+
+      if (!nome) erro('e-nome', 'Informe o nome.');
+
+      if (preco === '' || isNaN(Number(preco)) || Number(preco) < 0)
+        erro('e-preco', 'Informe um preço válido (0 ou mais).');
+
+      if (estoque === '' || !Number.isInteger(Number(estoque)) || Number(estoque) < 0)
+        erro('e-estoque', 'Estoque deve ser um inteiro maior ou igual a zero.');
+
+      if (ordem === '' || !Number.isInteger(Number(ordem)) || Number(ordem) < 0)
+        erro('e-ordem', 'Ordem deve ser um inteiro maior ou igual a zero.');
+
+      // imagem_url é NOT NULL no banco: peça nova exige imagem.
+      if (!editando && !imagemUrl && !imagemPendente) erro('e-imagem', 'Escolha uma imagem para a peça.');
+
+      return ok;
+    }
+
+    async function salvarPeca(ev) {
+      ev.preventDefault();
+      $('form-erro').hidden = true;
+      if (!validar()) return;
+
+      const sku = $('f-sku').value.trim();
+      const btn = $('btn-salvar');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        // Imagem escolhida antes do SKU sobe agora.
+        if (imagemPendente) await enviarPendente(sku);
+
+        const registro = {
+          nome: $('f-nome').value.trim(),
+          categoria: $('f-categoria').value,
+          preco_centavos: Math.round(Number($('f-preco').value) * 100),
+          estoque: Number($('f-estoque').value),
+          ordem: Number($('f-ordem').value),
+          ativo: $('f-ativo').checked,
+          imagem_url: imagemUrl,
+        };
+
+        if (editando) {
+          const { error } = await cliente.from(TABELA).update(registro).eq('id', editando.id);
+          if (error) throw error;
+          aviso(`"${registro.nome}" atualizada.`, 'ok');
+        } else {
+          const { error } = await cliente.from(TABELA)
+            .insert([{ ...registro, loja_id: LOJA_ID, sku }]);
+          if (error) throw error;
+          aviso(`"${registro.nome}" cadastrada.`, 'ok');
+        }
+
+        fecharForm();
+        await carregarPecas();
+      } catch (e) {
+        const duplicado = e.code === '23505' || /duplicate key|unique/i.test(e.message || '');
+        $('form-erro').textContent = duplicado
+          ? 'Já existe uma peça com este SKU nesta loja.'
+          : 'Não foi possível salvar: ' + (e.message || e);
+        $('form-erro').hidden = false;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar peça';
+      }
+    }
+
+    /* =========================== EXCLUIR ========================== */
+    async function excluirPeca(peca) {
+      const sim = await confirmar(
+        `Excluir "${peca.nome}" (${peca.sku})? A peça sai do catálogo e a imagem é apagada do bucket.`);
+      if (!sim) return;
+
+      try {
+        const { error } = await cliente.from(TABELA).delete().eq('id', peca.id);
+        if (error) throw error;
+
+        // A linha já saiu; se o arquivo não sair, avisa mas não desfaz a exclusão.
+        try {
+          await removerImagem(peca.sku);
+        } catch (eArquivo) {
+          aviso(`Peça excluída, mas a imagem ${peca.sku}.png continua no bucket.`, 'erro');
+          await carregarPecas();
+          return;
+        }
+
+        aviso(`"${peca.nome}" excluída.`, 'ok');
+        await carregarPecas();
+      } catch (e) {
+        aviso('Não foi possível excluir: ' + (e.message || e), 'erro');
+      }
+    }
+
+    /* ======================== INICIALIZAÇÃO ======================= */
+    function montarSelects() {
+      $('f-categoria').innerHTML = CATEGORIAS
+        .map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('');
+    }
+
+    function ligarEventos() {
+      $('form-login').addEventListener('submit', entrar);
+      $('btn-sair').onclick = sair;
+      $('btn-nova').onclick = () => abrirForm(null);
+      $('btn-fechar-form').onclick = fecharForm;
+      $('btn-cancelar-form').onclick = fecharForm;
+      $('form-peca').addEventListener('submit', salvarPeca);
+      $('f-imagem').addEventListener('change', aoEscolherImagem);
+      // SKU digitado depois da imagem: sobe o arquivo que ficou pendente.
+      $('f-sku').addEventListener('blur', () => {
+        const sku = $('f-sku').value.trim();
+        if (imagemPendente && sku && SKU_VALIDO.test(sku)) enviarPendente(sku).catch(() => { });
+      });
+    }
+
+    async function iniciar() {
+      montarSelects();
+      renderFiltros();
+      ligarEventos();
+      cliente.auth.onAuthStateChange((_evento, sessao) => aplicarSessao(sessao));
+      const { data } = await cliente.auth.getSession();
+      aplicarSessao(data ? data.session : null);
+    }
+
+    // Modo de teste (_test_painel.html): o dublê do cliente entra por aqui.
+    if (new URLSearchParams(location.search).has('teste')) {
+      window.__painelTeste = {
+        iniciarCom(dubles) { cliente = dubles; return iniciar(); },
+        estado: () => ({ pecas, filtroCategoria, editando, imagemUrl, imagemPendente }),
+        abrirForm, fecharForm, salvarPeca, carregarPecas,
+      };
+    } else {
+      cliente = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      iniciar();
+    }
+  </script>
+</body>
+
+</html>

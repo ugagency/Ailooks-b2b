@@ -1,0 +1,299 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Teste do painel do catálogo</title>
+</head>
+
+<body>
+  <pre id="out">RUNNING</pre>
+  <iframe id="f" src="painel.html?teste=1" style="width:1200px;height:900px"></iframe>
+
+  <script>
+    /* Harness do painel.html: troca o cliente Supabase por um dublê em memória
+       e dirige a interface como um usuário faria. Abrir via servidor HTTP. */
+
+    const out = document.getElementById('out');
+    const log = [];
+    const ok = (cond, msg) => log.push((cond ? 'PASS ' : 'FAIL ') + msg);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    async function waitFor(fn, tries = 80) {
+      for (let i = 0; i < tries; i++) { if (fn()) return true; await sleep(50); }
+      return false;
+    }
+
+    /* ------------------------- dublê do Supabase ------------------------- */
+    function criarDuble(linhas) {
+      const estado = {
+        linhas: linhas.map(l => ({ ...l })),
+        arquivos: {},        // caminho -> { tipo, tamanho }
+        chamadas: [],        // histórico de operações
+        sessao: null,
+        proximoId: 100,
+      };
+      let aoMudarAuth = null;
+
+      class Consulta {
+        constructor(tabela) { this.tabela = tabela; this.filtros = []; }
+        select() { this.op = 'select'; return this; }
+        insert(rows) { this.op = 'insert'; this.dados = rows; return this; }
+        update(patch) { this.op = 'update'; this.dados = patch; return this; }
+        delete() { this.op = 'delete'; return this; }
+        eq(col, val) { this.filtros.push([col, val]); return this; }
+        order() { return this; }
+        casa(l) { return this.filtros.every(([c, v]) => String(l[c]) === String(v)); }
+        executar() {
+          estado.chamadas.push({ op: this.op, tabela: this.tabela, filtros: this.filtros, dados: this.dados });
+          if (this.op === 'select') return { data: estado.linhas.filter(l => this.casa(l)), error: null };
+          if (this.op === 'insert') {
+            for (const r of this.dados) {
+              const repetido = estado.linhas.some(l => l.sku === r.sku && l.loja_id === r.loja_id);
+              if (repetido) return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
+              estado.linhas.push({ id: 'id-' + (estado.proximoId++), created_at: new Date().toISOString(), ...r });
+            }
+            return { data: null, error: null };
+          }
+          if (this.op === 'update') {
+            estado.linhas.filter(l => this.casa(l)).forEach(l => Object.assign(l, this.dados));
+            return { data: null, error: null };
+          }
+          if (this.op === 'delete') {
+            estado.linhas = estado.linhas.filter(l => !this.casa(l));
+            return { data: null, error: null };
+          }
+          return { data: null, error: { message: 'operação não suportada no dublê' } };
+        }
+        then(resolve) { resolve(this.executar()); }
+      }
+
+      return {
+        __estado: estado,
+        auth: {
+          async getSession() { return { data: { session: estado.sessao } }; },
+          onAuthStateChange(cb) { aoMudarAuth = cb; return { data: { subscription: { unsubscribe() { } } } }; },
+          async signInWithPassword({ email, password }) {
+            if (password !== 'senha-certa') return { data: {}, error: { message: 'Invalid login credentials' } };
+            estado.sessao = { user: { email, id: 'user-1' } };
+            aoMudarAuth && aoMudarAuth('SIGNED_IN', estado.sessao);
+            return { data: { session: estado.sessao }, error: null };
+          },
+          async signOut() { estado.sessao = null; aoMudarAuth && aoMudarAuth('SIGNED_OUT', null); return { error: null }; },
+        },
+        from(tabela) { return new Consulta(tabela); },
+        storage: {
+          from(bucket) {
+            return {
+              async upload(caminho, blob, opts) {
+                estado.chamadas.push({ op: 'upload', bucket, caminho, tipo: blob.type, tamanho: blob.size, opts });
+                if (estado.arquivos[caminho] && !(opts && opts.upsert)) {
+                  return { error: { message: 'The resource already exists' } };
+                }
+                estado.arquivos[caminho] = { tipo: blob.type, tamanho: blob.size };
+                return { data: { path: caminho }, error: null };
+              },
+              getPublicUrl(caminho) {
+                return { data: { publicUrl: `https://exemplo.supabase.co/storage/v1/object/public/${bucket}/${caminho}` } };
+              },
+              async remove(caminhos) {
+                estado.chamadas.push({ op: 'remove', bucket, caminhos });
+                caminhos.forEach(c => delete estado.arquivos[c]);
+                return { data: null, error: null };
+              },
+            };
+          },
+        },
+      };
+    }
+
+    /* ---------------------------- utilidades ---------------------------- */
+    async function arquivoJpeg(w) {
+      const c = document.createElement('canvas');
+      c.width = 40; c.height = 60;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#C78D75'; ctx.fillRect(0, 0, 40, 60);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+      return new w.File([blob], 'foto.jpg', { type: 'image/jpeg' });
+    }
+
+    function anexar(w, input, file) {
+      const dt = new w.DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new w.Event('change'));
+    }
+
+    /* ------------------------------ testes ------------------------------ */
+    (async () => {
+      const f = document.getElementById('f');
+      await new Promise(r => f.onload = r);
+      const w = f.contentWindow, d = f.contentDocument;
+
+      // nada de alert/confirm: qualquer chamada é registrada como falha
+      const nativos = [];
+      w.alert = (...a) => nativos.push(['alert', a]);
+      w.confirm = (...a) => { nativos.push(['confirm', a]); return true; };
+
+      const duble = criarDuble([
+        { id: 'id-1', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'ACE-001', nome: 'Cinto Couro Marrom', categoria: 'acessorio', preco_centavos: 9900, estoque: 15, ordem: 1, ativo: true, imagem_url: 'catalogo/ACE-001.svg' },
+        { id: 'id-2', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'TOP-002', nome: 'Polo Piquet', categoria: 'top', preco_centavos: 18900, estoque: 8, ordem: 2, ativo: true, imagem_url: 'catalogo/TOP-002.svg' },
+        { id: 'id-3', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'TOP-001', nome: 'Camisa Oxford', categoria: 'top', preco_centavos: 24900, estoque: 12, ordem: 1, ativo: false, imagem_url: 'catalogo/TOP-001.svg' },
+        { id: 'id-4', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'BOT-001', nome: 'Chino Caqui', categoria: 'bottom', preco_centavos: 22900, estoque: 10, ordem: 1, ativo: true, imagem_url: 'catalogo/BOT-001.svg' },
+        { id: 'id-9', loja_id: 'outra-loja', sku: 'X-999', nome: 'De outra loja', categoria: 'top', preco_centavos: 100, estoque: 1, ordem: 1, ativo: true, imagem_url: 'x.png' },
+      ]);
+
+      await w.__painelTeste.iniciarCom(duble);
+      const est = duble.__estado;
+      const linhas = () => Array.from(d.querySelectorAll('#corpo-tabela tr'));
+      const skus = () => linhas().map(tr => tr.dataset.sku);
+      const linhaDe = sku => linhas().find(tr => tr.dataset.sku === sku);
+
+      // --- login -------------------------------------------------------
+      ok(!d.getElementById('tela-login').hidden && d.getElementById('tela-painel').hidden,
+        'começa na tela de login, painel escondido');
+
+      d.getElementById('login-email').value = 'lojista@exemplo.com';
+      d.getElementById('login-senha').value = 'errada';
+      d.getElementById('form-login').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => !d.getElementById('login-erro').hidden);
+      ok(!d.getElementById('login-erro').hidden && d.getElementById('tela-painel').hidden,
+        'senha errada mostra erro e não entra: "' + d.getElementById('login-erro').textContent + '"');
+
+      d.getElementById('login-senha').value = 'senha-certa';
+      d.getElementById('form-login').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => !d.getElementById('tela-painel').hidden);
+      ok(!d.getElementById('tela-painel').hidden, 'senha certa abre o painel');
+      ok(d.getElementById('usuario-email').textContent === 'lojista@exemplo.com', 'mostra o e-mail logado');
+
+      // --- listagem ----------------------------------------------------
+      await waitFor(() => linhas().length > 0);
+      ok(JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002', 'BOT-001', 'ACE-001']),
+        'ordena por categoria (top, bottom, calcado, acessorio) e depois por ordem: ' + skus());
+      ok(!skus().includes('X-999'), 'não lista peça de outra loja');
+      ok(d.getElementById('contador').textContent === '4 peças', 'contador: ' + d.getElementById('contador').textContent);
+      ok(linhaDe('TOP-001').classList.contains('inativa'), 'linha inativa fica marcada');
+      ok(linhaDe('TOP-002').children[4].textContent.replace(/ /g, ' ').trim() === 'R$ 189,00',
+        'preço em reais: ' + linhaDe('TOP-002').children[4].textContent);
+
+      // --- filtro ------------------------------------------------------
+      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'top').click();
+      ok(JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002']), 'filtro por categoria: ' + skus());
+      ok(d.getElementById('contador').textContent === '2 peças', 'contador acompanha o filtro');
+      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'calcado').click();
+      ok(linhas().length === 0 && !d.getElementById('estado-vazio').hidden, 'categoria sem peças mostra estado vazio');
+      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'todas').click();
+      ok(linhas().length === 4, 'volta para todas');
+
+      // --- ativar / desativar -----------------------------------------
+      const chave = linhaDe('ACE-001').querySelector('.alternar-ativo');
+      chave.checked = false;
+      chave.dispatchEvent(new w.Event('change'));
+      await waitFor(() => est.linhas.find(l => l.sku === 'ACE-001').ativo === false);
+      ok(est.linhas.find(l => l.sku === 'ACE-001').ativo === false, 'toggle desativa no banco');
+      ok(linhaDe('ACE-001').querySelector('.texto').textContent === 'Inativa', 'rótulo vira Inativa');
+      ok(!d.querySelector('#modal-form') || d.getElementById('modal-form').hidden, 'toggle não abre formulário');
+
+      // --- criar peça ---------------------------------------------------
+      d.getElementById('btn-nova').click();
+      ok(!d.getElementById('modal-form').hidden, 'abre o formulário de nova peça');
+      ok(d.getElementById('f-sku').readOnly === false, 'SKU editável ao criar');
+
+      // salvar sem preencher nada
+      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await sleep(60);
+      ok(d.getElementById('e-sku').textContent !== '' && d.getElementById('e-nome').textContent !== '',
+        'validação bloqueia campos obrigatórios');
+      ok(d.getElementById('e-imagem').textContent !== '', 'imagem é exigida ao criar (imagem_url é NOT NULL)');
+
+      // SKU repetido
+      d.getElementById('f-sku').value = 'TOP-001';
+      d.getElementById('f-nome').value = 'Repetida';
+      d.getElementById('f-preco').value = '10';
+      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await sleep(60);
+      ok(/já existe/i.test(d.getElementById('e-sku').textContent), 'SKU repetido é barrado: ' + d.getElementById('e-sku').textContent);
+
+      // agora válido, com imagem JPEG (deve virar PNG)
+      d.getElementById('f-sku').value = 'CAL-003';
+      d.getElementById('f-nome').value = 'Mocassim Camurça';
+      d.getElementById('f-categoria').value = 'calcado';
+      d.getElementById('f-preco').value = '349.90';
+      d.getElementById('f-estoque').value = '7';
+      d.getElementById('f-ordem').value = '3';
+      anexar(w, d.getElementById('f-imagem'), await arquivoJpeg(w));
+      await waitFor(() => w.__painelTeste.estado().imagemUrl);
+
+      const envio = est.chamadas.filter(c => c.op === 'upload').pop();
+      ok(envio && envio.caminho === 'CAL-003.png', 'sobe como <SKU>.png na raiz do bucket: ' + (envio && envio.caminho));
+      ok(envio && envio.bucket === 'catalogo', 'bucket correto: ' + (envio && envio.bucket));
+      ok(envio && envio.tipo === 'image/png', 'JPEG convertido para PNG antes de subir: ' + (envio && envio.tipo));
+      ok(envio && envio.opts && envio.opts.upsert === true, 'upload usa upsert (substitui arquivo existente)');
+      ok(d.getElementById('form-preview').src.includes('CAL-003.png'), 'preview passa a mostrar a URL pública');
+
+      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => est.linhas.some(l => l.sku === 'CAL-003'));
+      const nova = est.linhas.find(l => l.sku === 'CAL-003');
+      ok(nova.preco_centavos === 34990, 'preço convertido para centavos: ' + nova.preco_centavos);
+      ok(nova.estoque === 7 && nova.ordem === 3 && nova.ativo === true, 'estoque, ordem e ativo gravados');
+      ok(nova.loja_id === '00000000-0000-0000-0000-000000000001', 'loja_id fixo gravado');
+      ok(nova.imagem_url.includes('/catalogo/CAL-003.png'), 'imagem_url aponta para o arquivo público');
+      ok(/\?v=\d+/.test(nova.imagem_url), 'imagem_url versionada para furar cache: ' + nova.imagem_url.split('?')[1]);
+      ok(d.getElementById('modal-form').hidden, 'formulário fecha ao salvar');
+      ok(skus().includes('CAL-003') && JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002', 'BOT-001', 'CAL-003', 'ACE-001']),
+        'nova peça entra na posição certa da lista: ' + skus());
+
+      // --- editar peça --------------------------------------------------
+      linhaDe('TOP-002').querySelector('.editar').click();
+      ok(!d.getElementById('modal-form').hidden, 'abre o formulário de edição');
+      ok(d.getElementById('f-sku').readOnly === true, 'SKU somente leitura ao editar');
+      ok(d.getElementById('f-preco').value === '189.00', 'preço carregado em reais: ' + d.getElementById('f-preco').value);
+      ok(d.getElementById('form-preview').src.includes('TOP-002'), 'preview carrega a imagem atual');
+
+      d.getElementById('f-nome').value = 'Polo Piquet Marinho';
+      d.getElementById('f-preco').value = '199.90';
+      d.getElementById('f-estoque').value = '5';
+      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => est.linhas.find(l => l.sku === 'TOP-002').preco_centavos === 19990);
+      const editada = est.linhas.find(l => l.sku === 'TOP-002');
+      ok(editada.nome === 'Polo Piquet Marinho' && editada.preco_centavos === 19990 && editada.estoque === 5,
+        'edição salva nome, preço e estoque');
+      ok(editada.imagem_url === 'catalogo/TOP-002.svg', 'imagem intocada quando não se escolhe outra');
+
+      // trocar a imagem de uma peça existente
+      linhaDe('TOP-002').querySelector('.editar').click();
+      anexar(w, d.getElementById('f-imagem'), await arquivoJpeg(w));
+      await waitFor(() => (w.__painelTeste.estado().imagemUrl || '').includes('TOP-002.png'));
+      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => est.linhas.find(l => l.sku === 'TOP-002').imagem_url.includes('TOP-002.png'));
+      ok(est.arquivos['TOP-002.png'], 'trocar imagem grava TOP-002.png no bucket');
+      ok(est.linhas.find(l => l.sku === 'TOP-002').imagem_url.includes('TOP-002.png'), 'imagem_url atualizada na troca');
+
+      // --- excluir ------------------------------------------------------
+      linhaDe('CAL-003').querySelector('.excluir').click();
+      await waitFor(() => !d.getElementById('modal-confirmar').hidden);
+      ok(!d.getElementById('modal-confirmar').hidden, 'excluir pede confirmação na própria página');
+      d.getElementById('btn-nao').click();
+      await sleep(60);
+      ok(est.linhas.some(l => l.sku === 'CAL-003'), 'cancelar não exclui');
+
+      linhaDe('CAL-003').querySelector('.excluir').click();
+      await waitFor(() => !d.getElementById('modal-confirmar').hidden);
+      d.getElementById('btn-sim').click();
+      await waitFor(() => !est.linhas.some(l => l.sku === 'CAL-003'));
+      ok(!est.linhas.some(l => l.sku === 'CAL-003'), 'confirmar remove a linha da tabela');
+      ok(!est.arquivos['CAL-003.png'], 'confirmar remove o arquivo do bucket');
+      ok(!skus().includes('CAL-003'), 'lista atualizada após excluir');
+
+      // --- sair ---------------------------------------------------------
+      d.getElementById('btn-sair').click();
+      await waitFor(() => !d.getElementById('tela-login').hidden);
+      ok(!d.getElementById('tela-login').hidden && d.getElementById('tela-painel').hidden, 'sair volta para o login');
+
+      ok(nativos.length === 0, 'nenhum alert() ou confirm() nativo usado' + (nativos.length ? ': ' + JSON.stringify(nativos) : ''));
+
+      out.textContent = log.join('\n') + '\nDONE ' + log.filter(l => l.startsWith('FAIL')).length + ' FAIL';
+    })().catch(e => { out.textContent = log.join('\n') + '\nERROR ' + (e && e.stack || e); });
+  </script>
+</body>
+
+</html>

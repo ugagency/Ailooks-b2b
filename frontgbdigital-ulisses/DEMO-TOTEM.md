@@ -46,6 +46,30 @@ Estado em `selectedPecas` (`script.js`), separado do `fileRef` que o closet B2C 
   campos, ordem e a regra da justificativa. 26 checks. Rodar headless:
   `chrome --headless=new --virtual-time-budget=40000 --dump-dom http://127.0.0.1:8123/_test_multiselect.html`.
 
+## Painel do catálogo (`gbdigital/painel.html`)
+
+Ferramenta de demonstração para o lojista cadastrar as peças. Arquivo único, HTML + CSS + JS próprios,
+sem framework e sem build. Não usa `script.js`, `totem.js` nem `style.css`, e não altera o totem.
+
+```
+cd gbdigital && python -m http.server 8123
+# abrir http://localhost:8123/painel.html
+```
+
+- **Acesso:** Supabase Auth (e-mail e senha). A escrita no banco e no bucket é liberada só para usuários
+  autenticados pelas policies de `supabase/02_painel_policies.sql`. Nenhuma service role key no navegador.
+  O usuário é criado à mão no dashboard (Authentication > Users > Add user, com "Auto Confirm").
+- **Listagem:** miniatura, SKU, nome, categoria, preço, estoque e interruptor de ativo. Filtro por categoria.
+  Ordena por categoria na sequência do totem (top, bottom, calcado, acessorio) e depois por `ordem`.
+- **Imagem:** JPG e WEBP são convertidos para PNG por canvas antes de subir. O arquivo vai para a raiz do
+  bucket `catalogo` como `<SKU>.png` com `upsert`, e `imagem_url` recebe a URL pública com `?v=<timestamp>`
+  para não servir cache antigo (o nome do arquivo nunca muda).
+- **Ativar/desativar** é direto na lista, sem abrir formulário. **Excluir** confirma numa janela da própria
+  página, apaga a linha e remove o arquivo do bucket. Nenhum `alert()` ou `confirm()` nativo.
+- **Teste:** `gbdigital/_test_painel.html` (abrir via servidor HTTP) substitui o Supabase por um dublê em
+  memória e dirige a interface: login, ordenação, filtro, toggle, criar, editar, trocar imagem e excluir.
+  47 checks. Headless: `chrome --headless=new --virtual-time-budget=40000 --dump-dom http://127.0.0.1:8123/_test_painel.html`.
+
 ## Pendências manuais (na ordem)
 
 1. **Verificar RLS em `user_wardrobe`** — não consegui checar daqui: o MCP do Supabase só tem acesso ao
@@ -53,10 +77,11 @@ Estado em `selectedPecas` (`script.js`), separado do `fileRef` que o closet B2C 
    pelo sandbox. Rodar o bloco 0 do `supabase/01_catalogo_loja.sql` no SQL Editor. Se `rowsecurity = false`,
    aplicar o bloco 0b.
 2. **Criar `catalogo_loja` e o bucket** — blocos 1 e 2 do mesmo SQL.
-3. **Subir fotos reais** no bucket `catalogo` como `<SKU>.png` e rodar o seed (bloco 3). Enquanto a tabela
+3. **Rodar `supabase/02_painel_policies.sql`** e criar o usuário do painel no dashboard (Authentication > Users).
+4. **Subir fotos reais** no bucket `catalogo` como `<SKU>.png` e rodar o seed (bloco 3). Enquanto a tabela
    não existir, o front usa `catalogo.json` e avisa no rodapé do catálogo.
-4. **Testar ponta a ponta com Gemini real** — foto (ou manequim) + peça do catálogo + ocasião → 3 looks.
-5. *(Se sobrar tempo)* Style bible da loja no File Search do Gemini e ajustar o `Switch` do n8n.
+5. **Testar ponta a ponta com Gemini real** — foto (ou manequim) + peça do catálogo + ocasião → 3 looks.
+6. *(Se sobrar tempo)* Style bible da loja no File Search do Gemini e ajustar o `Switch` do n8n.
 
 ## Avisos vindos da leitura do n8n (`n8n/Ia_look_backendweb.json`)
 
@@ -64,8 +89,10 @@ Estado em `selectedPecas` (`script.js`), separado do `fileRef` que o closet B2C 
   (`Code in JavaScript11`) e tem `Respond`. Os ramos `ATEMPORAL` e `ATHLEISURE` terminam em nós sem saída
   (`Code in JavaScript7` e `10`). Por isso o totem fixa `Estilo: Old Money`. Não é limitação do demo, é o estado
   do workflow.
-- **Chaves de API do Gemini estão hardcoded** nos nós `Edit Fields`, `Edit Fields4` e `Edit Fields7` e estão
-  commitadas no JSON. Se esse repositório for compartilhado com o parceiro do totem, rotacionar antes.
+- **Chaves de API do Gemini foram redigidas** nos nós `Edit Fields`, `Edit Fields4` e `Edit Fields7` antes do
+  primeiro push (viraram `REDACTED_ROTATE_BEFORE_USE`). O workflow só volta a rodar com chaves reais, que devem
+  entrar pelas credenciais do n8n e não como valor fixo no JSON. As chaves antigas, que ficaram expostas em disco
+  até essa redação, precisam ser rotacionadas.
 - O node `Edit an image` recebe exatamente `image_base` + `image_reference`. Suportar N peças exige mudar a
   chamada, não um parâmetro (item 7 do plano — fora do demo, como combinado).
 - Formalidade: o front sempre mandou 1–3, o prompt do agente diz 1–5. O totem usa 1–3. Funciona, mas o range
@@ -75,5 +102,6 @@ Estado em `selectedPecas` (`script.js`), separado do `fileRef` que o closet B2C 
 
 - Demo com fotos padronizadas performa melhor que catálogo real de lojista pequeno. Misturar 3–4 fotos
   "ruins" de propósito antes do demo.
-- Fotos de marca real no catálogo = exposição de PI. Usar banco licenciado ou fotos próprias.
+- Fotos de marca real no catálogo = exposição de PI. Hoje o repositório só tem placeholders SVG; ao trocar
+  pelas fotos de verdade, usar banco licenciado ou fotos próprias.
 - Demo bem-sucedido não fecha o gate de fidelidade (N peças, consumidores reais, 90%).
