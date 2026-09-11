@@ -2,3 +2,5 @@
 # parte do produto e não precisam estar publicamente acessíveis no deploy).
 _test_multiselect.html
 _test_painel.html
+_test_tablet.html
+_test_duble.js

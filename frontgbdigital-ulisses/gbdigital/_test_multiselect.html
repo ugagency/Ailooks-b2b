@@ -1,7 +1,8 @@
 <!doctype html>
 <html><head><meta charset="utf-8"></head><body>
 <pre id="out">RUNNING</pre>
-<iframe id="f" src="index.html" style="width:1080px;height:1600px"></iframe>
+<iframe id="f" src="index.html?teste=1" style="width:1080px;height:1600px"></iframe>
+<script src="_test_duble.js"></script>
 <script>
 const out = document.getElementById('out');
 const log = [];
@@ -15,7 +16,28 @@ async function waitFor(fn, tries = 100) { for (let i = 0; i < tries; i++) { if (
   const f = document.getElementById('f');
   await new Promise(r => f.onload = r);
   const w = f.contentWindow, d = f.contentDocument;
+
+  // Provva: o catálogo só carrega com sessão de vendedor. Sobe um dublê com a loja demo e loga.
+  const LOJA = '11111111-1111-4111-8111-111111111111', UN = '33333333-3333-4333-8333-333333333333', OP = '55555555-5555-4555-8555-555555555555';
+  const PECAS = [
+    ['TOP-001', 'Camisa Oxford Branca', 'top', 24900, 1], ['TOP-002', 'Polo Piquet Azul-Marinho', 'top', 18900, 2], ['TOP-003', 'Blazer Linho Bege', 'top', 59900, 3],
+    ['BOT-001', 'Calça Chino Caqui', 'bottom', 22900, 1], ['BOT-002', 'Calça Alfaiataria Cinza', 'bottom', 32900, 2],
+    ['CAL-001', 'Loafer Couro Marrom', 'calcado', 39900, 1], ['CAL-002', 'Tênis Couro Branco', 'calcado', 29900, 2], ['ACE-001', 'Cinto Couro Marrom', 'acessorio', 9900, 1]];
+  const duble = criarDuble({
+    operadores: [{ id: OP, nome: 'Op', status: 'ativo' }],
+    lojas: [{ id: LOJA, operador_id: OP, nome: 'Loja demo', status: 'ativo', branding: { nome_exibicao: 'AI Looks', cor_primaria: '#1A1A1A', cor_secundaria: '#C78D75' }, wizard_etapa: null }],
+    unidades: [{ id: UN, loja_id: LOJA, nome: 'Unidade 1', totens_contratados: 1, plano: 'base', status: 'ativo' }],
+    vendedores: [{ id: 'v1', unidade_id: UN, nome: 'Ana', email: 'ana@demo.com', senha_hash: 'hash:123456', status: 'ativo', tentativas_falhas: 0, bloqueado_ate: null }],
+    catalogo_loja: PECAS.map(([sku, nome, categoria, preco, ordem]) => ({ id: 'p-' + sku, loja_id: LOJA, sku, nome, categoria, preco_centavos: preco, estoque: 10, ordem, ativo: true, imagem_url: `catalogo/${sku}.svg` })),
+  });
+  w.localStorage.removeItem('provva_token');
+  await w.__totemTeste.iniciarCom(duble);
+  await waitFor(() => !d.getElementById('authOverlay').classList.contains('hidden'));
+  d.getElementById('authEmail').value = 'ana@demo.com';
+  d.getElementById('authPassword').value = '123456';
+  d.getElementById('authForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
   await waitFor(() => d.querySelectorAll('.catalogo-card').length === 8);
+  ok(!d.getElementById('appContent').classList.contains('hidden'), 'app revelado após login do vendedor');
   const card = sku => Array.from(d.querySelectorAll('.catalogo-card')).find(c => c.dataset.sku === sku);
   const counter = () => d.getElementById('pecas-counter').textContent;
   const chips = () => Array.from(d.querySelectorAll('#pecas-selecionadas span')).map(s => s.textContent);
@@ -101,6 +123,13 @@ async function waitFor(fn, tries = 100) { for (let i = 0; i < tries; i++) { if (
   fakeResp = [{ edited: PNG1, justificativa: 'Só o primeiro.' }, { edited: PNG1, justificativa: null }, { edited: PNG1, justificativa: '' }];
   await w.sendGenerate();
   ok(!rj.classList.contains('hidden') && rj.children.length === 1, 'mistura: só a justificativa não-nula aparece');
+
+  // Provva: cada sendGenerate bem-sucedido = 1 registrar_geracao (3 chamadas acima, 3 linhas), origem certa
+  const regs = duble.__chamadas.filter(c => c.op === 'rpc' && c.nome === 'registrar_geracao');
+  ok(regs.length === 3, 'uma registrar_geracao por geração (3 gerações → ' + regs.length + ' chamadas)');
+  ok(regs[0].args.p_origem === 'multi_peca' && regs[1].args.p_origem === 'estilista', 'origem: 5 peças → multi_peca, 1 peça → estilista');
+  ok(duble.__db.geracoes.length === 3 && duble.__db.geracoes.every(g => g.unidade_id === UN), '3 linhas em geracoes na unidade do vendedor');
+  ok(d.getElementById('creditosPill').textContent.includes('3 / 1.000'), 'pill de créditos atualizada: ' + d.getElementById('creditosPill').textContent);
 
   out.textContent = log.join('\n') + '\nDONE ' + log.filter(l => l.startsWith('FAIL')).length + ' FAIL';
 })().catch(e => { out.textContent = log.join('\n') + '\nERROR ' + (e.stack || e); });

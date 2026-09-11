@@ -191,7 +191,7 @@ function setOcasiao(nome) {
     document.querySelectorAll('[data-ocasiao]').forEach(btn => {
         const on = btn.dataset.ocasiao === nome;
         btn.className = on
-            ? 'px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-primary text-white transition-all'
+            ? 'px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-primary text-onprimary transition-all'
             : 'px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-bg text-muted hover:bg-gray-100 transition-all';
     });
 }
@@ -638,16 +638,18 @@ const CATEGORIA_LABEL = { top: 'Parte de cima', bottom: 'Parte de baixo', calcad
 const CATEGORIA_ORDEM = ['top', 'bottom', 'calcado', 'acessorio'];
 
 async function fetchCatalogo() {
-    if (window.supabaseClient) {
+    // Provva: a loja vem da sessão do vendedor (totem.js). Sem loja resolvida, não há o que listar.
+    if (window.supabaseClient && window.TOTEM_LOJA_ID) {
         try {
-            let q = window.supabaseClient.from('catalogo_loja').select('*').eq('ativo', true)
+            const { data, error } = await window.supabaseClient.from('catalogo_loja').select('*')
+                .eq('ativo', true).eq('loja_id', window.TOTEM_LOJA_ID)
                 .order('categoria').order('ordem').order('nome');
-            if (window.TOTEM_LOJA_ID) q = q.eq('loja_id', window.TOTEM_LOJA_ID);
-            const { data, error } = await q;
-            if (!error && data?.length) return { items: data, fonte: 'supabase' };
-            if (error) console.warn('catalogo_loja indisponível, usando catalogo.json:', error.message);
+            // Catálogo vazio é um estado válido da loja (não cai no catalogo.json de outra loja).
+            if (!error) return { items: data || [], fonte: 'supabase' };
+            console.warn('catalogo_loja indisponível, usando catalogo.json:', error.message);
         } catch (e) { console.warn('Erro ao ler catalogo_loja:', e); }
     }
+    if (window.TOTEM_LOJA_ID === null && window.IS_TOTEM) return { items: [], fonte: 'sem-sessao' };
     const r = await fetch('catalogo.json', { cache: 'no-store' });
     return { items: await r.json(), fonte: 'local' };
 }
@@ -731,6 +733,12 @@ async function loadCatalogo() {
     const categorias = [...CATEGORIA_ORDEM.filter(c => porCategoria[c]), ...Object.keys(porCategoria).filter(c => !CATEGORIA_ORDEM.includes(c))];
 
     catalogoGrid.innerHTML = '';
+    if (items.length === 0) {
+        catalogoGrid.innerHTML = '<p class="py-8 text-center text-xs text-muted italic">Catálogo vazio. Cadastre as peças da loja no painel.</p>';
+        syncCatalogoVisual();
+        renderSelectedStrip();
+        return;
+    }
     categorias.forEach(cat => {
         const sec = document.createElement('div');
         sec.className = 'mb-5';
@@ -744,7 +752,7 @@ async function loadCatalogo() {
             card.dataset.sku = item.sku;
             const semEstoque = Number(item.estoque) === 0;
             card.innerHTML = `<img src="${item.imagem_url}" alt="${item.nome}" class="w-full h-full object-cover">
-                <div class="catalogo-check hidden absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-secondary text-white flex items-center justify-center shadow">
+                <div class="catalogo-check hidden absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-secondary text-onsecondary flex items-center justify-center shadow">
                     <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 ${semEstoque ? '<span class="absolute top-1.5 left-1.5 bg-white/90 text-[8px] font-bold uppercase tracking-widest text-muted px-1.5 py-0.5 rounded">Sem estoque</span>' : ''}
@@ -852,7 +860,10 @@ async function toBlob(src) {
     return src;
 }
 
+let gerando = false; // trava de duplo toque: um toque = uma geração = uma linha em geracoes
+
 async function sendGenerate() {
+    if (gerando) return;
     // Peças do catálogo (totem) ou, no legado B2C, a peça única do closet/upload
     const pecas = selectedPecas.length > 0
         ? pecasOrdenadas()
@@ -861,6 +872,9 @@ async function sendGenerate() {
     const auth = await window.getAuthState();
     if (auth.isAnonymous && parseInt(localStorage.getItem('anon_gen_count') || '0') >= ANON_LIMIT) return document.getElementById('limitModal')?.classList.remove('hidden');
 
+    gerando = true;
+    if (generateBtn) generateBtn.disabled = true;
+    if (regenerateBtn) regenerateBtn.disabled = true;
     try {
         localStorage.setItem('last_gen_attempt', Date.now().toString());
         loadingOverlay?.classList.remove('hidden');
@@ -980,6 +994,14 @@ async function sendGenerate() {
         console.log("Exibindo seção de resultado (#resultSection)");
         resultSection.classList.remove('hidden');
 
+        // Provva: uma geração bem-sucedida = uma linha em geracoes (crédito da unidade do vendedor).
+        // Fora do try principal de propósito: falha no registro nunca derruba o resultado já exibido.
+        if (window.IS_TOTEM && carouselImages.length > 0 && typeof window.registrarGeracao === 'function') {
+            try {
+                await window.registrarGeracao(pecas.length > 1 ? 'multi_peca' : 'estilista');
+            } catch (regErr) { console.warn('registrarGeracao:', regErr); }
+        }
+
         // Permanentemente Salva no Histórico se estiver logado
         if (!auth.isAnonymous && auth.session && blob) {
             try {
@@ -1000,6 +1022,8 @@ async function sendGenerate() {
         console.error("Erro na Geração:", e);
         showAlert(e.message || "Erro na conexão com o servidor de IA.", "Falha na Geração");
     } finally {
+        gerando = false;
+        if (regenerateBtn) regenerateBtn.disabled = false;
         loadingOverlay?.classList.add('hidden');
         updateGenerateState();
     }
@@ -1213,12 +1237,19 @@ window.addEventListener('auth:change', (e) => {
 loadFormState();
 updateGenerateState();
 
-// Totem: catálogo + ocasião entram sem login
+// Totem (Provva): ocasião e faixa de seleção entram já; o catálogo espera a sessão do vendedor
+// (totem.js resolve TOTEM_READY depois de validar o token e aplicar o branding da loja).
 if (window.IS_TOTEM) {
     setOcasiao(ocasiaoSelecionada);
     if (sectionWardrobeUpload) sectionWardrobeUpload.style.display = 'none'; // linha de peça única: substituída pela faixa de seleção
     renderSelectedStrip();
-    loadCatalogo();
+    (window.TOTEM_READY || Promise.resolve()).then(() => loadCatalogo());
+    // Novo login sem recarregar a página (sessão expirada): a loja pode ter mudado, recarrega o catálogo.
+    window.addEventListener('totem:sessao', e => {
+        if (e.detail && e.detail.primeira) return;
+        selectedPecas = [];
+        loadCatalogo();
+    });
 }
 
 // Inicialização de Modelos (Usando caminhos relativos na pasta manequins/)

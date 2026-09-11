@@ -1,5 +1,10 @@
 # Demo Totem — o que foi feito e o que falta
 
+> **Nota:** a estrutura multi-tenant (operador → loja → unidade → vendedores, login de vendedor,
+> branding dinâmico, créditos, painel reescrito) está documentada em **[PROVVA.md](PROVVA.md)**, que
+> substitui o modelo de loja única descrito abaixo. Este arquivo fica como histórico das decisões da
+> primeira etapa (seleção múltipla de peças, painel de catálogo single-tenant, Vercel).
+
 Adaptação da branch `ulisses` para o demo do totem. Código descartável: o objetivo é provar que
 o produto funciona na frente do dono da empresa de totem. Nada aqui é base de produção.
 

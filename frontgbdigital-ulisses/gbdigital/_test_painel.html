@@ -3,294 +3,289 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Teste do painel do catálogo</title>
+  <title>Teste do painel Provva</title>
 </head>
 
 <body>
   <pre id="out">RUNNING</pre>
   <iframe id="f" src="painel.html?teste=1" style="width:1200px;height:900px"></iframe>
-
+  <script src="_test_duble.js"></script>
   <script>
-    /* Harness do painel.html: troca o cliente Supabase por um dublê em memória
-       e dirige a interface como um usuário faria. Abrir via servidor HTTP. */
-
+    /* Harness do painel.html: papéis (plataforma/operador), escopo por operador, catálogo + CSV,
+       unidades/vendedores, wizard retomável. Abrir via servidor HTTP. */
     const out = document.getElementById('out');
     const log = [];
     const ok = (cond, msg) => log.push((cond ? 'PASS ' : 'FAIL ') + msg);
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    async function waitFor(fn, tries = 80) {
-      for (let i = 0; i < tries; i++) { if (fn()) return true; await sleep(50); }
-      return false;
-    }
+    async function waitFor(fn, tries = 100) { for (let i = 0; i < tries; i++) { try { if (fn()) return true; } catch (e) { } await sleep(60); } return false; }
 
-    /* ------------------------- dublê do Supabase ------------------------- */
-    function criarDuble(linhas) {
-      const estado = {
-        linhas: linhas.map(l => ({ ...l })),
-        arquivos: {},        // caminho -> { tipo, tamanho }
-        chamadas: [],        // histórico de operações
-        sessao: null,
-        proximoId: 100,
-      };
-      let aoMudarAuth = null;
+    const OP_A = '55555555-5555-4555-8555-555555555555', OP_B = '66666666-6666-4666-8666-666666666666';
+    const LOJA_A = '11111111-1111-4111-8111-111111111111', LOJA_B = '22222222-2222-4222-8222-222222222222';
+    const UN_A1 = '33333333-3333-4333-8333-333333333333', UN_B1 = '44444444-4444-4444-8444-444444444444';
 
-      class Consulta {
-        constructor(tabela) { this.tabela = tabela; this.filtros = []; }
-        select() { this.op = 'select'; return this; }
-        insert(rows) { this.op = 'insert'; this.dados = rows; return this; }
-        update(patch) { this.op = 'update'; this.dados = patch; return this; }
-        delete() { this.op = 'delete'; return this; }
-        eq(col, val) { this.filtros.push([col, val]); return this; }
-        order() { return this; }
-        casa(l) { return this.filtros.every(([c, v]) => String(l[c]) === String(v)); }
-        executar() {
-          estado.chamadas.push({ op: this.op, tabela: this.tabela, filtros: this.filtros, dados: this.dados });
-          if (this.op === 'select') return { data: estado.linhas.filter(l => this.casa(l)), error: null };
-          if (this.op === 'insert') {
-            for (const r of this.dados) {
-              const repetido = estado.linhas.some(l => l.sku === r.sku && l.loja_id === r.loja_id);
-              if (repetido) return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
-              estado.linhas.push({ id: 'id-' + (estado.proximoId++), created_at: new Date().toISOString(), ...r });
-            }
-            return { data: null, error: null };
-          }
-          if (this.op === 'update') {
-            estado.linhas.filter(l => this.casa(l)).forEach(l => Object.assign(l, this.dados));
-            return { data: null, error: null };
-          }
-          if (this.op === 'delete') {
-            estado.linhas = estado.linhas.filter(l => !this.casa(l));
-            return { data: null, error: null };
-          }
-          return { data: null, error: { message: 'operação não suportada no dublê' } };
-        }
-        then(resolve) { resolve(this.executar()); }
-      }
-
-      return {
-        __estado: estado,
-        auth: {
-          async getSession() { return { data: { session: estado.sessao } }; },
-          onAuthStateChange(cb) { aoMudarAuth = cb; return { data: { subscription: { unsubscribe() { } } } }; },
-          async signInWithPassword({ email, password }) {
-            if (password !== 'senha-certa') return { data: {}, error: { message: 'Invalid login credentials' } };
-            estado.sessao = { user: { email, id: 'user-1' } };
-            aoMudarAuth && aoMudarAuth('SIGNED_IN', estado.sessao);
-            return { data: { session: estado.sessao }, error: null };
-          },
-          async signOut() { estado.sessao = null; aoMudarAuth && aoMudarAuth('SIGNED_OUT', null); return { error: null }; },
-        },
-        from(tabela) { return new Consulta(tabela); },
-        storage: {
-          from(bucket) {
-            return {
-              async upload(caminho, blob, opts) {
-                estado.chamadas.push({ op: 'upload', bucket, caminho, tipo: blob.type, tamanho: blob.size, opts });
-                if (estado.arquivos[caminho] && !(opts && opts.upsert)) {
-                  return { error: { message: 'The resource already exists' } };
-                }
-                estado.arquivos[caminho] = { tipo: blob.type, tamanho: blob.size };
-                return { data: { path: caminho }, error: null };
-              },
-              getPublicUrl(caminho) {
-                return { data: { publicUrl: `https://exemplo.supabase.co/storage/v1/object/public/${bucket}/${caminho}` } };
-              },
-              async remove(caminhos) {
-                estado.chamadas.push({ op: 'remove', bucket, caminhos });
-                caminhos.forEach(c => delete estado.arquivos[c]);
-                return { data: null, error: null };
-              },
-            };
-          },
-        },
-      };
-    }
-
-    /* ---------------------------- utilidades ---------------------------- */
     async function arquivoJpeg(w) {
-      const c = document.createElement('canvas');
-      c.width = 40; c.height = 60;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#C78D75'; ctx.fillRect(0, 0, 40, 60);
+      const c = document.createElement('canvas'); c.width = 40; c.height = 60;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#C78D75'; ctx.fillRect(0, 0, 40, 60);
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
       return new w.File([blob], 'foto.jpg', { type: 'image/jpeg' });
     }
-
     function anexar(w, input, file) {
-      const dt = new w.DataTransfer();
-      dt.items.add(file);
-      input.files = dt.files;
+      const dt = new w.DataTransfer(); dt.items.add(file); input.files = dt.files;
       input.dispatchEvent(new w.Event('change'));
     }
 
-    /* ------------------------------ testes ------------------------------ */
     (async () => {
       const f = document.getElementById('f');
       await new Promise(r => f.onload = r);
       const w = f.contentWindow, d = f.contentDocument;
-
-      // nada de alert/confirm: qualquer chamada é registrada como falha
+      const $ = id => d.getElementById(id);
       const nativos = [];
       w.alert = (...a) => nativos.push(['alert', a]);
       w.confirm = (...a) => { nativos.push(['confirm', a]); return true; };
 
-      const duble = criarDuble([
-        { id: 'id-1', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'ACE-001', nome: 'Cinto Couro Marrom', categoria: 'acessorio', preco_centavos: 9900, estoque: 15, ordem: 1, ativo: true, imagem_url: 'catalogo/ACE-001.svg' },
-        { id: 'id-2', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'TOP-002', nome: 'Polo Piquet', categoria: 'top', preco_centavos: 18900, estoque: 8, ordem: 2, ativo: true, imagem_url: 'catalogo/TOP-002.svg' },
-        { id: 'id-3', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'TOP-001', nome: 'Camisa Oxford', categoria: 'top', preco_centavos: 24900, estoque: 12, ordem: 1, ativo: false, imagem_url: 'catalogo/TOP-001.svg' },
-        { id: 'id-4', loja_id: '00000000-0000-0000-0000-000000000001', sku: 'BOT-001', nome: 'Chino Caqui', categoria: 'bottom', preco_centavos: 22900, estoque: 10, ordem: 1, ativo: true, imagem_url: 'catalogo/BOT-001.svg' },
-        { id: 'id-9', loja_id: 'outra-loja', sku: 'X-999', nome: 'De outra loja', categoria: 'top', preco_centavos: 100, estoque: 1, ordem: 1, ativo: true, imagem_url: 'x.png' },
-      ]);
+      const duble = criarDuble({
+        usuarios_auth: [
+          { id: 'u-plat', email: 'plat@provva.com', senha: 'senha-certa' },
+          { id: 'u-opa', email: 'opa@leds.com', senha: 'senha-certa' },
+          { id: 'u-novo', email: 'novo@x.com', senha: 'senha-certa' },
+        ],
+        usuarios_painel: [
+          { user_id: 'u-plat', papel: 'plataforma', operador_id: null, loja_id: null },
+          { user_id: 'u-opa', papel: 'operador', operador_id: OP_A, loja_id: null },
+        ],
+        operadores: [{ id: OP_A, nome: 'Painéis LED SA', documento: '11.111', status: 'ativo' }, { id: OP_B, nome: 'Outdoor BH', documento: null, status: 'ativo' }],
+        lojas: [
+          { id: LOJA_A, operador_id: OP_A, nome: 'MA Ville', observacao: 'moda masculina', status: 'ativo', wizard_etapa: null, branding: { nome_exibicao: 'MA Ville', cor_primaria: '#123456', cor_secundaria: '#C78D75' } },
+          { id: LOJA_B, operador_id: OP_B, nome: 'Outra Marca', observacao: null, status: 'ativo', wizard_etapa: 3, branding: {} },
+        ],
+        unidades: [
+          { id: UN_A1, loja_id: LOJA_A, nome: 'Belvedere', endereco: 'Rua A', totens_contratados: 2, plano: 'base', status: 'ativo' },
+          { id: UN_B1, loja_id: LOJA_B, nome: 'Savassi', endereco: null, totens_contratados: 3, plano: 'plus', status: 'ativo' },
+        ],
+        vendedores: [{ id: 'vd-1', unidade_id: UN_A1, nome: 'Ana', email: 'ana@maville.com', senha_hash: 'hash:123456', status: 'ativo', tentativas_falhas: 0, bloqueado_ate: null }],
+        catalogo_loja: [
+          { id: 'p1', loja_id: LOJA_A, sku: 'TOP-001', nome: 'Camisa Oxford', categoria: 'top', preco_centavos: 24900, estoque: 12, ordem: 1, ativo: true, imagem_url: 'https://exemplo.supabase.co/storage/v1/object/public/catalogo/TOP-001.png' },
+          { id: 'p2', loja_id: LOJA_A, sku: 'BOT-001', nome: 'Chino', categoria: 'bottom', preco_centavos: 22900, estoque: 3, ordem: 1, ativo: true, imagem_url: 'catalogo/BOT-001.svg' },
+          { id: 'p3', loja_id: LOJA_A, sku: 'ACE-001', nome: 'Cinto', categoria: 'acessorio', preco_centavos: 9900, estoque: 0, ordem: 1, ativo: false, imagem_url: 'catalogo/ACE-001.svg' },
+          { id: 'p4', loja_id: LOJA_B, sku: 'X-1', nome: 'Da outra', categoria: 'top', preco_centavos: 100, estoque: 1, ordem: 1, ativo: true, imagem_url: 'catalogo/TOP-002.svg' },
+        ],
+        geracoes: Array.from({ length: 1600 }, (_, i) => ({ id: 'g' + i, unidade_id: UN_A1, loja_id: LOJA_A, vendedor_id: 'vd-1', origem: 'estilista', excedente: false, mes_ref: '2026-09-01' })),
+      });
+      const db = duble.__db;
+
+      const navegar = async (hash, pronto) => { w.location.hash = hash; await sleep(30); await waitFor(pronto); };
+      const login = async (email, senha) => {
+        $('login-email').value = email; $('login-senha').value = senha;
+        $('form-login').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      };
+      const navLinks = () => Array.from(d.querySelectorAll('#nav-links a')).map(a => a.textContent);
+      const texto = () => $('rota').textContent;
 
       await w.__painelTeste.iniciarCom(duble);
-      const est = duble.__estado;
-      const linhas = () => Array.from(d.querySelectorAll('#corpo-tabela tr'));
-      const skus = () => linhas().map(tr => tr.dataset.sku);
-      const linhaDe = sku => linhas().find(tr => tr.dataset.sku === sku);
+      ok(!$('tela-login').hidden && $('tela-painel').hidden, 'começa no login');
 
-      // --- login -------------------------------------------------------
-      ok(!d.getElementById('tela-login').hidden && d.getElementById('tela-painel').hidden,
-        'começa na tela de login, painel escondido');
+      /* ---------- plataforma ---------- */
+      await login('plat@provva.com', 'errada');
+      await waitFor(() => !$('login-erro').hidden);
+      ok(!$('login-erro').hidden, 'senha errada mostra erro');
+      w.location.hash = '#/';
+      await login('plat@provva.com', 'senha-certa');
+      await waitFor(() => !$('tela-painel').hidden && d.querySelectorAll('#cs-corpo tr').length === 2);
+      ok(!$('tela-painel').hidden, 'plataforma entra no painel');
+      ok($('papel-usuario').textContent === 'Plataforma', 'badge do papel: ' + $('papel-usuario').textContent);
+      ok(JSON.stringify(navLinks()) === JSON.stringify(['Consumo', 'Operadores', 'Lojas', 'Usuários']), 'nav da plataforma: ' + navLinks());
+      ok(d.querySelectorAll('#cs-corpo tr').length === 2, 'consumo lista as 2 unidades');
+      ok(/8\.000/.test(texto()) && /1\.600/.test(texto()), 'consumo: pool 8.000 (2×1000 + 3×2000) e 1.600 usadas');
+      ok(/Outdoor BH/.test(texto()) && /5%/.test(texto()), 'frota: Outdoor BH com 3 totens → 5%');
 
-      d.getElementById('login-email').value = 'lojista@exemplo.com';
-      d.getElementById('login-senha').value = 'errada';
-      d.getElementById('form-login').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await waitFor(() => !d.getElementById('login-erro').hidden);
-      ok(!d.getElementById('login-erro').hidden && d.getElementById('tela-painel').hidden,
-        'senha errada mostra erro e não entra: "' + d.getElementById('login-erro').textContent + '"');
+      await navegar('#/operadores', () => d.querySelectorAll('#op-corpo tr').length === 2);
+      ok(d.querySelectorAll('#op-corpo tr').length === 2, 'operadores: 2 linhas');
+      const linhaB = Array.from(d.querySelectorAll('#op-corpo tr')).find(tr => tr.textContent.includes('Outdoor BH'));
+      ok(linhaB && /5%/.test(linhaB.textContent) && /\b3\b/.test(linhaB.children[3].textContent), 'operador B: 3 totens, 5% de desconto');
 
-      d.getElementById('login-senha').value = 'senha-certa';
-      d.getElementById('form-login').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await waitFor(() => !d.getElementById('tela-painel').hidden);
-      ok(!d.getElementById('tela-painel').hidden, 'senha certa abre o painel');
-      ok(d.getElementById('usuario-email').textContent === 'lojista@exemplo.com', 'mostra o e-mail logado');
+      // novo operador via modal
+      $('op-novo').click();
+      await waitFor(() => $('op-nome'));
+      $('op-nome').value = 'Novo Operador';
+      $('form-operador').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => db.operadores.length === 3 && d.querySelectorAll('#op-corpo tr').length === 3);
+      ok(db.operadores.some(o => o.nome === 'Novo Operador'), 'operador criado');
 
-      // --- listagem ----------------------------------------------------
-      await waitFor(() => linhas().length > 0);
-      ok(JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002', 'BOT-001', 'ACE-001']),
-        'ordena por categoria (top, bottom, calcado, acessorio) e depois por ordem: ' + skus());
-      ok(!skus().includes('X-999'), 'não lista peça de outra loja');
-      ok(d.getElementById('contador').textContent === '4 peças', 'contador: ' + d.getElementById('contador').textContent);
-      ok(linhaDe('TOP-001').classList.contains('inativa'), 'linha inativa fica marcada');
-      ok(linhaDe('TOP-002').children[4].textContent.replace(/ /g, ' ').trim() === 'R$ 189,00',
-        'preço em reais: ' + linhaDe('TOP-002').children[4].textContent);
+      await navegar('#/lojas', () => d.querySelectorAll('#lj-corpo tr').length === 2);
+      ok(d.querySelectorAll('#lj-corpo tr').length === 2, 'lojas: plataforma vê as 2');
+      const trB = Array.from(d.querySelectorAll('#lj-corpo tr')).find(tr => tr.textContent.includes('Outra Marca'));
+      ok(trB && /cadastro incompleto/.test(trB.textContent) && trB.querySelector('a[href*="nova-loja"]'), 'loja com wizard pendente mostra badge e link "Continuar cadastro"');
 
-      // --- filtro ------------------------------------------------------
-      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'top').click();
-      ok(JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002']), 'filtro por categoria: ' + skus());
-      ok(d.getElementById('contador').textContent === '2 peças', 'contador acompanha o filtro');
-      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'calcado').click();
-      ok(linhas().length === 0 && !d.getElementById('estado-vazio').hidden, 'categoria sem peças mostra estado vazio');
-      Array.from(d.querySelectorAll('#filtros .filtro')).find(b => b.dataset.categoria === 'todas').click();
-      ok(linhas().length === 4, 'volta para todas');
+      /* ---------- catálogo da loja A ---------- */
+      await navegar(`#/lojas/${LOJA_A}?aba=catalogo`, () => d.querySelectorAll('#cat-corpo tr').length === 3);
+      ok(d.querySelectorAll('#cat-corpo tr').length === 3, 'aba catálogo: 3 peças da loja A (sem as da B)');
+      ok(Array.from(d.querySelectorAll('#cat-corpo tr')).map(t => t.dataset.sku).join() === 'TOP-001,BOT-001,ACE-001', 'ordem por categoria');
 
-      // --- ativar / desativar -----------------------------------------
-      const chave = linhaDe('ACE-001').querySelector('.alternar-ativo');
-      chave.checked = false;
-      chave.dispatchEvent(new w.Event('change'));
-      await waitFor(() => est.linhas.find(l => l.sku === 'ACE-001').ativo === false);
-      ok(est.linhas.find(l => l.sku === 'ACE-001').ativo === false, 'toggle desativa no banco');
-      ok(linhaDe('ACE-001').querySelector('.texto').textContent === 'Inativa', 'rótulo vira Inativa');
-      ok(!d.querySelector('#modal-form') || d.getElementById('modal-form').hidden, 'toggle não abre formulário');
+      $('cat-nova').click();
+      await waitFor(() => $('f-sku'));
+      $('f-sku').value = 'TOP-099'; $('f-nome').value = 'Nova Camisa'; $('f-preco').value = '199.9';
+      anexar(w, $('f-imagem'), await arquivoJpeg(w));
+      await waitFor(() => /enviada/.test($('status-imagem').textContent));
+      const up = duble.__chamadas.filter(c => c.op === 'upload').pop();
+      ok(up && up.bucket === 'catalogo' && up.caminho === `${LOJA_A}/TOP-099.png` && up.tipo === 'image/png', 'upload em <loja_id>/<SKU>.png como PNG: ' + (up && up.caminho));
+      $('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => db.catalogo_loja.some(p => p.sku === 'TOP-099'));
+      const nova = db.catalogo_loja.find(p => p.sku === 'TOP-099');
+      ok(nova && nova.loja_id === LOJA_A && nova.preco_centavos === 19990 && /TOP-099\.png/.test(nova.imagem_url), 'peça criada na loja certa com preço em centavos');
+      await waitFor(() => d.querySelectorAll('#cat-corpo tr').length === 4);
 
-      // --- criar peça ---------------------------------------------------
-      d.getElementById('btn-nova').click();
-      ok(!d.getElementById('modal-form').hidden, 'abre o formulário de nova peça');
-      ok(d.getElementById('f-sku').readOnly === false, 'SKU editável ao criar');
+      // excluir peça legada (arquivo na raiz do bucket): o caminho vem da URL gravada
+      Array.from(d.querySelectorAll('#cat-corpo tr')).find(t => t.dataset.sku === 'TOP-001').querySelector('.excluir').click();
+      await waitFor(() => !$('modal-confirmar').hidden);
+      $('btn-sim').click();
+      await waitFor(() => !db.catalogo_loja.some(p => p.sku === 'TOP-001'));
+      const rm = duble.__chamadas.filter(c => c.op === 'remove').pop();
+      ok(rm && rm.caminhos[0] === 'TOP-001.png', 'exclusão remove o arquivo pelo caminho da URL (legado na raiz): ' + (rm && rm.caminhos));
 
-      // salvar sem preencher nada
-      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      // CSV: BOM + ; + aspas + preço com vírgula + linha inválida + imagem externa
+      $('cat-importar').click();
+      await waitFor(() => $('csv-arquivo'));
+      const csv = '﻿sku;nome;categoria;preco;estoque;ordem;ativo;imagem_url\n' +
+        'BOT-001;"Chino; Caqui";Parte de baixo;299,90;3;1;sim;\n' +
+        'NEW-001;Peça Nova;calcado;R$ 1.250,00;2;4;não;https://exemplo.com/x.png\n' +
+        'BAD-001;Sem categoria;xyz;10;1;1;sim;\n';
+      anexar(w, $('csv-arquivo'), new w.File([csv], 'catalogo.csv', { type: 'text/csv' }));
+      await waitFor(() => /2<\/b> linha/.test($('csv-previa').innerHTML) || /linha\(s\) válida/.test($('csv-previa').textContent));
+      ok(/2/.test($('csv-previa').textContent) && /1/.test($('csv-previa').textContent) && /BAD-001/.test($('csv-previa').textContent), 'prévia: 2 válidas, 1 inválida (BAD-001) listada');
+      ok(/externa/.test($('csv-previa').textContent), 'aviso de imagem externa');
+      $('csv-importar').click();
+      await waitFor(() => db.catalogo_loja.some(p => p.sku === 'NEW-001'));
+      const bot = db.catalogo_loja.find(p => p.sku === 'BOT-001'), nova2 = db.catalogo_loja.find(p => p.sku === 'NEW-001');
+      ok(bot.nome === 'Chino; Caqui' && bot.preco_centavos === 29990 && bot.categoria === 'bottom', 'upsert atualiza SKU existente (aspas, vírgula, categoria por sinônimo)');
+      ok(nova2.preco_centavos === 125000 && nova2.ativo === false && nova2.imagem_url === 'https://exemplo.com/x.png', 'nova peça com R$ 1.250,00, ativo=não e imagem externa');
+      ok(!db.catalogo_loja.some(p => p.sku === 'BAD-001'), 'linha inválida ignorada');
+      const upsert = duble.__chamadas.filter(c => c.op === 'upsert').pop();
+      ok(upsert && upsert.dados.length === 2 && upsert.dados.every(r => r.loja_id === LOJA_A), 'upsert com 2 linhas na loja certa');
+
+      /* ---------- unidades / vendedores ---------- */
+      await navegar(`#/lojas/${LOJA_A}?aba=unidades`, () => d.querySelectorAll('#un-corpo tr').length === 1);
+      ok(/2\.000 gerações\/mês/.test(texto()), 'pool total da loja A: 2.000');
+      $('un-nova').click();
+      await waitFor(() => $('un-nome'));
+      $('un-nome').value = 'BH Shopping'; $('un-totens').value = '3'; $('un-plano').value = 'max';
+      $('un-totens').dispatchEvent(new w.Event('input'));
+      ok($('un-creditos').textContent === '10.500', 'formulário calcula 3 × Max = 10.500: ' + $('un-creditos').textContent);
+      $('form-unidade').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => d.querySelectorAll('#un-corpo tr').length === 2);
+      const un2 = db.unidades.find(u => u.nome === 'BH Shopping');
+      ok(un2 && un2.loja_id === LOJA_A && un2.geracoes_incluidas_mes === 10500, 'unidade criada com pool recalculado');
+      ok(/12\.500 gerações\/mês/.test(texto()), 'pool total da loja passa a 12.500');
+
+      await navegar(`#/unidades/${UN_A1}`, () => d.querySelectorAll('#vd-corpo tr').length === 1);
+      ok(/1\.600/.test(texto()) && /Belvedere/.test(texto()), 'detalhe da unidade mostra uso do mês');
+      ok(!/hash:/.test($('rota').innerHTML), 'senha_hash nunca aparece na tela');
+      $('vd-novo').click();
+      await waitFor(() => $('vd-senha'));
+      $('vd-nome').value = 'Bruno'; $('vd-email').value = 'Bruno@MAville.com'; $('vd-senha').value = '123';
+      $('form-vendedor').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await sleep(80);
+      ok($('e-vd-senha').textContent !== '', 'senha curta barrada no formulário');
+      $('vd-senha').value = 'abcdef';
+      $('form-vendedor').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => d.querySelectorAll('#vd-corpo tr').length === 2);
+      const bruno = db.vendedores.find(v => v.nome === 'Bruno');
+      ok(bruno && bruno.email === 'bruno@maville.com' && bruno.senha_hash === 'hash:abcdef' && bruno.unidade_id === UN_A1, 'vendedor criado via RPC (e-mail minúsculo, hash no banco)');
+      const cv = duble.__chamadas.filter(c => c.op === 'rpc' && c.nome === 'criar_vendedor').pop();
+      ok(cv && cv.args.p_unidade === UN_A1, 'criar_vendedor chamada com a unidade certa');
+      const chave = Array.from(d.querySelectorAll('#vd-corpo tr')).find(t => t.textContent.includes('Bruno')).querySelector('.vd-ativo');
+      chave.checked = false; chave.dispatchEvent(new w.Event('change'));
+      await waitFor(() => bruno.status === 'inativo');
+      ok(bruno.status === 'inativo', 'toggle desativa o vendedor');
+
+      /* ---------- wizard: cria, sai, retoma, conclui ---------- */
+      await navegar('#/nova-loja', () => $('wz-nome'));
+      $('wz-form-loja').dispatchEvent(new w.Event('submit', { cancelable: true }));
       await sleep(60);
-      ok(d.getElementById('e-sku').textContent !== '' && d.getElementById('e-nome').textContent !== '',
-        'validação bloqueia campos obrigatórios');
-      ok(d.getElementById('e-imagem').textContent !== '', 'imagem é exigida ao criar (imagem_url é NOT NULL)');
+      ok($('e-wz-nome').textContent !== '', 'wizard: nome obrigatório');
+      $('wz-nome').value = 'Loja Nova Z'; $('wz-operador').value = OP_B; $('wz-observacao').value = 'streetwear';
+      $('wz-form-loja').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => db.lojas.some(l => l.nome === 'Loja Nova Z') && $('wz-branding') && $('form-branding'));
+      const lz = db.lojas.find(l => l.nome === 'Loja Nova Z');
+      ok(lz && lz.wizard_etapa === 2 && lz.operador_id === OP_B && lz.observacao === 'streetwear', 'passo 1 salvo com wizard_etapa=2');
+      ok(new RegExp(`loja=${lz.id}&etapa=2`).test(w.location.hash), 'avança para o passo 2: ' + w.location.hash);
+      ok(d.querySelector('.passo.atual').dataset.passo === '2', 'indicador no passo 2');
 
-      // SKU repetido
-      d.getElementById('f-sku').value = 'TOP-001';
-      d.getElementById('f-nome').value = 'Repetida';
-      d.getElementById('f-preco').value = '10';
-      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await sleep(60);
-      ok(/já existe/i.test(d.getElementById('e-sku').textContent), 'SKU repetido é barrado: ' + d.getElementById('e-sku').textContent);
+      // branding com preview ao vivo
+      $('br-nome').value = 'ZETA'; $('br-nome').dispatchEvent(new w.Event('input'));
+      $('br-primaria-hex').value = '#FF0000'; $('br-primaria-hex').dispatchEvent(new w.Event('input'));
+      ok(/ZETA/.test($('br-preview').textContent) && /#FF0000/i.test($('br-preview').innerHTML), 'preview do tablet atualiza ao vivo');
+      $('form-branding').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => lz.wizard_etapa === 3);
+      ok(lz.branding && lz.branding.cor_primaria === '#FF0000' && lz.branding.nome_exibicao === 'ZETA', 'branding salvo na loja');
 
-      // agora válido, com imagem JPEG (deve virar PNG)
-      d.getElementById('f-sku').value = 'CAL-003';
-      d.getElementById('f-nome').value = 'Mocassim Camurça';
-      d.getElementById('f-categoria').value = 'calcado';
-      d.getElementById('f-preco').value = '349.90';
-      d.getElementById('f-estoque').value = '7';
-      d.getElementById('f-ordem').value = '3';
-      anexar(w, d.getElementById('f-imagem'), await arquivoJpeg(w));
-      await waitFor(() => w.__painelTeste.estado().imagemUrl);
+      // sai no meio e retoma pela lista de lojas
+      await navegar('#/lojas', () => d.querySelectorAll('#lj-corpo tr').length === 3);
+      const trZ = Array.from(d.querySelectorAll('#lj-corpo tr')).find(tr => tr.textContent.includes('Loja Nova Z'));
+      ok(trZ && /cadastro incompleto/.test(trZ.textContent), 'loja em andamento aparece como cadastro incompleto');
+      await navegar(`#/nova-loja?loja=${lz.id}`, () => d.querySelector('.passo.atual'));
+      ok(d.querySelector('.passo.atual').dataset.passo === '3' && $('wz-avancar'), 'retomada abre direto no passo 3 (catálogo)');
+      ok(/Pular e avançar/.test($('wz-avancar').textContent), 'catálogo vazio pode ser pulado');
+      $('wz-avancar').click();
+      await waitFor(() => lz.wizard_etapa === 4 && $('wz-add-unidade'));
+      $('wz-add-unidade').click();
+      await waitFor(() => $('un-nome'));
+      $('un-nome').value = 'Matriz'; $('un-totens').value = '2'; $('un-plano').value = 'plus';
+      $('form-unidade').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => /Matriz/.test(texto()) && /4\.000 gerações\/mês/.test(texto()));
+      ok(/4\.000 gerações\/mês/.test(texto()), 'passo 4 mostra o pool da unidade nova (2 × Plus = 4.000)');
+      $('wz-avancar').click();
+      await waitFor(() => lz.wizard_etapa === 5 && d.querySelector('.wz-add-vendedor'));
+      d.querySelector('.wz-add-vendedor').click();
+      await waitFor(() => $('vd-senha'));
+      $('vd-nome').value = 'Carla'; $('vd-email').value = 'carla@zeta.com'; $('vd-senha').value = 'segredo1';
+      $('form-vendedor').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => /carla@zeta\.com/.test(texto()));
+      ok(db.vendedores.some(v => v.email === 'carla@zeta.com'), 'primeiro vendedor da unidade criado pelo wizard');
+      $('wz-concluir').click();
+      await waitFor(() => lz.wizard_etapa === null && new RegExp(`#/lojas/${lz.id}$`).test(w.location.hash));
+      ok(lz.wizard_etapa === null, 'concluir zera wizard_etapa');
+      ok(new RegExp(`#/lojas/${lz.id}$`).test(w.location.hash), 'concluir leva ao detalhe da loja: ' + w.location.hash);
 
-      const envio = est.chamadas.filter(c => c.op === 'upload').pop();
-      ok(envio && envio.caminho === 'CAL-003.png', 'sobe como <SKU>.png na raiz do bucket: ' + (envio && envio.caminho));
-      ok(envio && envio.bucket === 'catalogo', 'bucket correto: ' + (envio && envio.bucket));
-      ok(envio && envio.tipo === 'image/png', 'JPEG convertido para PNG antes de subir: ' + (envio && envio.tipo));
-      ok(envio && envio.opts && envio.opts.upsert === true, 'upload usa upsert (substitui arquivo existente)');
-      ok(d.getElementById('form-preview').src.includes('CAL-003.png'), 'preview passa a mostrar a URL pública');
+      /* ---------- usuários ---------- */
+      await navegar('#/usuarios', () => d.querySelectorAll('#us-corpo tr').length === 2);
+      $('us-novo').click();
+      await waitFor(() => $('us-email'));
+      $('us-email').value = 'naoexiste@x.com'; $('us-papel').value = 'operador'; $('us-papel').dispatchEvent(new w.Event('change')); $('us-operador').value = OP_B;
+      $('form-usuario').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => !$('us-erro').hidden);
+      ok(/não encontrado/.test($('us-erro').textContent), 'vincular e-mail inexistente no Auth dá erro claro');
+      $('us-email').value = 'novo@x.com';
+      $('form-usuario').dispatchEvent(new w.Event('submit', { cancelable: true }));
+      await waitFor(() => d.querySelectorAll('#us-corpo tr').length === 3);
+      ok(db.usuarios_painel.some(u => u.user_id === 'u-novo' && u.papel === 'operador' && u.operador_id === OP_B), 'usuário vinculado como operador B');
 
-      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await waitFor(() => est.linhas.some(l => l.sku === 'CAL-003'));
-      const nova = est.linhas.find(l => l.sku === 'CAL-003');
-      ok(nova.preco_centavos === 34990, 'preço convertido para centavos: ' + nova.preco_centavos);
-      ok(nova.estoque === 7 && nova.ordem === 3 && nova.ativo === true, 'estoque, ordem e ativo gravados');
-      ok(nova.loja_id === '00000000-0000-0000-0000-000000000001', 'loja_id fixo gravado');
-      ok(nova.imagem_url.includes('/catalogo/CAL-003.png'), 'imagem_url aponta para o arquivo público');
-      ok(/\?v=\d+/.test(nova.imagem_url), 'imagem_url versionada para furar cache: ' + nova.imagem_url.split('?')[1]);
-      ok(d.getElementById('modal-form').hidden, 'formulário fecha ao salvar');
-      ok(skus().includes('CAL-003') && JSON.stringify(skus()) === JSON.stringify(['TOP-001', 'TOP-002', 'BOT-001', 'CAL-003', 'ACE-001']),
-        'nova peça entra na posição certa da lista: ' + skus());
+      /* ---------- operador A: escopo ---------- */
+      $('btn-sair').click();
+      await waitFor(() => !$('tela-login').hidden);
+      w.location.hash = '#/lojas';
+      await login('opa@leds.com', 'senha-certa');
+      await waitFor(() => !$('tela-painel').hidden && d.querySelectorAll('#lj-corpo tr').length === 1);
+      ok(JSON.stringify(navLinks()) === JSON.stringify(['Consumo', 'Lojas']), 'nav do operador: ' + navLinks());
+      ok(d.querySelectorAll('#lj-corpo tr').length === 1 && /MA Ville/.test(texto()), 'operador vê só a própria loja');
+      await navegar(`#/lojas/${LOJA_B}`, () => /não encontrada|sem acesso/i.test(texto()));
+      ok(/não encontrada|sem acesso/i.test(texto()), 'URL direta de loja alheia: sem acesso');
+      await navegar('#/operadores', () => /não tem acesso/.test(texto()));
+      ok(/não tem acesso/.test(texto()), 'rota de plataforma bloqueada para operador');
+      await navegar('#/', () => d.querySelectorAll('#cs-corpo tr').length === 2);
+      ok(d.querySelectorAll('#cs-corpo tr').length === 2 && !/Savassi/.test(texto()), 'consumo do operador: só as unidades dele');
+      // upload em pasta de loja alheia → negado pelo storage
+      const r = await duble.storage.from('catalogo').upload(`${LOJA_B}/X.png`, new w.Blob(['x'], { type: 'image/png' }), { upsert: true });
+      ok(r.error && /security/.test(r.error.message), 'storage nega upload em pasta de loja alheia');
 
-      // --- editar peça --------------------------------------------------
-      linhaDe('TOP-002').querySelector('.editar').click();
-      ok(!d.getElementById('modal-form').hidden, 'abre o formulário de edição');
-      ok(d.getElementById('f-sku').readOnly === true, 'SKU somente leitura ao editar');
-      ok(d.getElementById('f-preco').value === '189.00', 'preço carregado em reais: ' + d.getElementById('f-preco').value);
-      ok(d.getElementById('form-preview').src.includes('TOP-002'), 'preview carrega a imagem atual');
+      /* ---------- usuário sem vínculo ---------- */
+      $('btn-sair').click();
+      await waitFor(() => !$('tela-login').hidden);
+      db.usuarios_painel = db.usuarios_painel.filter(u => u.user_id !== 'u-novo');
+      await login('novo@x.com', 'senha-certa');
+      await waitFor(() => !$('tela-sem-acesso').hidden);
+      ok(!$('tela-sem-acesso').hidden && $('tela-painel').hidden, 'conta sem papel cai na tela "sem acesso"');
 
-      d.getElementById('f-nome').value = 'Polo Piquet Marinho';
-      d.getElementById('f-preco').value = '199.90';
-      d.getElementById('f-estoque').value = '5';
-      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await waitFor(() => est.linhas.find(l => l.sku === 'TOP-002').preco_centavos === 19990);
-      const editada = est.linhas.find(l => l.sku === 'TOP-002');
-      ok(editada.nome === 'Polo Piquet Marinho' && editada.preco_centavos === 19990 && editada.estoque === 5,
-        'edição salva nome, preço e estoque');
-      ok(editada.imagem_url === 'catalogo/TOP-002.svg', 'imagem intocada quando não se escolhe outra');
-
-      // trocar a imagem de uma peça existente
-      linhaDe('TOP-002').querySelector('.editar').click();
-      anexar(w, d.getElementById('f-imagem'), await arquivoJpeg(w));
-      await waitFor(() => (w.__painelTeste.estado().imagemUrl || '').includes('TOP-002.png'));
-      d.getElementById('form-peca').dispatchEvent(new w.Event('submit', { cancelable: true }));
-      await waitFor(() => est.linhas.find(l => l.sku === 'TOP-002').imagem_url.includes('TOP-002.png'));
-      ok(est.arquivos['TOP-002.png'], 'trocar imagem grava TOP-002.png no bucket');
-      ok(est.linhas.find(l => l.sku === 'TOP-002').imagem_url.includes('TOP-002.png'), 'imagem_url atualizada na troca');
-
-      // --- excluir ------------------------------------------------------
-      linhaDe('CAL-003').querySelector('.excluir').click();
-      await waitFor(() => !d.getElementById('modal-confirmar').hidden);
-      ok(!d.getElementById('modal-confirmar').hidden, 'excluir pede confirmação na própria página');
-      d.getElementById('btn-nao').click();
-      await sleep(60);
-      ok(est.linhas.some(l => l.sku === 'CAL-003'), 'cancelar não exclui');
-
-      linhaDe('CAL-003').querySelector('.excluir').click();
-      await waitFor(() => !d.getElementById('modal-confirmar').hidden);
-      d.getElementById('btn-sim').click();
-      await waitFor(() => !est.linhas.some(l => l.sku === 'CAL-003'));
-      ok(!est.linhas.some(l => l.sku === 'CAL-003'), 'confirmar remove a linha da tabela');
-      ok(!est.arquivos['CAL-003.png'], 'confirmar remove o arquivo do bucket');
-      ok(!skus().includes('CAL-003'), 'lista atualizada após excluir');
-
-      // --- sair ---------------------------------------------------------
-      d.getElementById('btn-sair').click();
-      await waitFor(() => !d.getElementById('tela-login').hidden);
-      ok(!d.getElementById('tela-login').hidden && d.getElementById('tela-painel').hidden, 'sair volta para o login');
-
-      ok(nativos.length === 0, 'nenhum alert() ou confirm() nativo usado' + (nativos.length ? ': ' + JSON.stringify(nativos) : ''));
-
+      ok(nativos.length === 0, 'nenhum alert()/confirm() nativo' + (nativos.length ? ': ' + JSON.stringify(nativos) : ''));
       out.textContent = log.join('\n') + '\nDONE ' + log.filter(l => l.startsWith('FAIL')).length + ' FAIL';
     })().catch(e => { out.textContent = log.join('\n') + '\nERROR ' + (e && e.stack || e); });
   </script>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
+<rect width="600" height="800" fill="#EFEFEC"/>
+<rect x="180" y="250" width="240" height="300" rx="18" fill="none" stroke="#C4C4C0" stroke-width="6" stroke-dasharray="18 12"/>
+<text x="300" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#8E8E93">sem imagem</text>
+<text x="300" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#B0B0AD">envie a foto da peça no painel</text>
+</svg>

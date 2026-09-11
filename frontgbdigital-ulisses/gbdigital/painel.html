@@ -4,18 +4,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Painel do Catálogo | AI Looks</title>
+  <title>Painel Provva</title>
 
   <!--
-    Painel do Catálogo — ferramenta de demonstração, descartável.
-    Só CRUD de catalogo_loja + upload de imagem. Uma loja só (LOJA_ID fixo).
+    Painel de gestão Provva — operadores → lojas → unidades → vendedores.
+    HTML + CSS + JS puro, sem build. Esta página é a casca: login, navegação
+    e o <main id="rota">; cada tela vive em painel/*.js e é montada pelo router.
 
-    Acesso: Supabase Auth (e-mail + senha), com a escrita no banco liberada
-    apenas para usuários autenticados. Ver supabase/02_painel_policies.sql.
-    NENHUMA service role key é usada aqui — só a chave anon, que é pública
-    por design e protegida pelo RLS.
+    Acesso: Supabase Auth (e-mail + senha) + papel em usuarios_painel
+    (plataforma vê tudo; operador vê só as próprias lojas). O escopo é
+    garantido pelo RLS em supabase/03_estrutura_provva.sql — a tela só reflete.
+    NENHUMA service role key: só a chave anon, pública por design.
 
-    Não depende de script.js / totem.js / style.css (esses são do totem).
+    Não depende de script.js / totem.js / style.css (esses são do tablet).
   -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +35,7 @@
       --border: #E5E5E5;
       --erro: #DC2626;
       --ok: #15803D;
+      --alerta: #B45309;
     }
 
     * { box-sizing: border-box; }
@@ -48,6 +50,7 @@
     }
 
     h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; margin: 0; }
+    a { color: inherit; }
 
     .rotulo {
       font-size: 10px;
@@ -68,7 +71,9 @@
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      transition: background .15s, color .15s, border-color .15s;
+      transition: background .15s, color .15s, border-color .15s, opacity .15s;
+      text-decoration: none;
+      display: inline-block;
     }
 
     .btn-primario { background: var(--primary); color: #fff; }
@@ -89,6 +94,8 @@
       padding: 6px 12px;
       font-size: 11px;
       font-weight: 700;
+      text-decoration: none;
+      display: inline-block;
     }
     .btn-mini:hover { border-color: var(--secondary); color: var(--secondary); }
     .btn-mini.perigo:hover { border-color: var(--erro); color: var(--erro); }
@@ -96,7 +103,7 @@
     /* ---------- campos ---------- */
     .campo { display: flex; flex-direction: column; gap: 6px; }
 
-    input[type=text], input[type=number], input[type=email], input[type=password], select {
+    input[type=text], input[type=number], input[type=email], input[type=password], input[type=color], select, textarea {
       font-family: inherit;
       font-size: 14px;
       color: var(--primary);
@@ -106,12 +113,31 @@
       padding: 11px 12px;
       width: 100%;
     }
+    input[type=color] { padding: 4px; height: 44px; cursor: pointer; }
+    textarea { resize: vertical; }
 
-    input:focus, select:focus { outline: 2px solid rgba(199, 141, 117, .45); outline-offset: 1px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid rgba(199, 141, 117, .45); outline-offset: 1px; }
     input:read-only { background: #EFEFEC; color: var(--muted); }
 
     .dica { font-size: 11px; color: var(--muted); }
     .erro-campo { font-size: 11px; color: var(--erro); min-height: 14px; }
+
+    .aviso-erro {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: var(--erro);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .aviso-info {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: var(--alerta);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
 
     /* ---------- login ---------- */
     #tela-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -130,17 +156,36 @@
     #tela-login .topo p { margin: 0; font-size: 12px; color: #C9C9C9; }
     #tela-login form { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
 
-    .aviso-erro {
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
-      color: var(--erro);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 12px;
-    }
+    /* ---------- casca do painel ---------- */
+    #tela-painel { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
 
-    /* ---------- painel ---------- */
-    #tela-painel { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+    .topo-painel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .marca { display: flex; align-items: center; gap: 12px; }
+    .marca h1 { font-size: 22px; }
+    .usuario { display: flex; align-items: center; gap: 12px; }
+    .usuario span { font-size: 12px; color: var(--muted); }
+
+    #nav-links { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
+    #nav-links a {
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    #nav-links a.ativo { color: var(--primary); border-bottom-color: var(--primary); }
+    #nav-links a:hover { color: var(--secondary); }
 
     .cabecalho {
       display: flex;
@@ -148,10 +193,14 @@
       gap: 12px;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 18px;
     }
+    .cabecalho h1 { font-size: 28px; }
+    .cabecalho .sub { margin: 4px 0 0; }
 
-    .cabecalho h1 { font-size: 30px; }
+    .migalhas { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .migalhas a { color: var(--muted); text-decoration: none; }
+    .migalhas a:hover { color: var(--secondary); }
 
     .selo {
       display: inline-block;
@@ -163,11 +212,23 @@
       font-weight: 700;
       padding: 4px 10px;
       border-radius: 999px;
-      margin-bottom: 8px;
     }
 
-    .usuario { display: flex; align-items: center; gap: 12px; }
-    .usuario span { font-size: 12px; color: var(--muted); }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #EFEFEC;
+      color: var(--muted);
+    }
+    .badge.ok { background: #DCFCE7; color: var(--ok); }
+    .badge.off { background: #F3F4F6; color: #6B7280; }
+    .badge.alerta { background: #FEF3C7; color: var(--alerta); }
+    .badge.erro { background: #FEE2E2; color: var(--erro); }
 
     .barra {
       background: var(--surface);
@@ -183,7 +244,6 @@
     }
 
     .filtros { display: flex; flex-wrap: wrap; gap: 6px; }
-
     .filtro {
       border: 1px solid var(--border);
       background: var(--surface);
@@ -195,22 +255,41 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
-
     .filtro:hover { border-color: var(--secondary); color: var(--secondary); }
     .filtro[aria-pressed=true] { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-    /* ---------- tabela ---------- */
+    /* ---------- cartões / quadros ---------- */
     .quadro {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
       overflow: hidden;
+      margin-bottom: 16px;
     }
+    .quadro .topo-quadro {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .quadro .topo-quadro h2 { font-size: 18px; }
+    .quadro .corpo-quadro { padding: 16px; }
+
+    .cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+    .cartao-info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .cartao-info .valor { font-family: 'Playfair Display', serif; font-size: 26px; margin: 6px 0 2px; }
+    .cartao-info .rotulo { display: block; }
 
     .rolagem { overflow-x: auto; }
-
-    table { width: 100%; border-collapse: collapse; min-width: 780px; }
-
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
     th {
       text-align: left;
       font-size: 10px;
@@ -223,133 +302,114 @@
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
-
     td { padding: 12px 16px; border-bottom: 1px solid #F1F1EF; vertical-align: middle; }
     tbody tr:last-child td { border-bottom: 0; }
     tbody tr.inativa { opacity: .55; }
+    tr.clicavel { cursor: pointer; }
+    tr.clicavel:hover td { background: #FCFCFA; }
 
     .miniatura {
-      width: 44px;
-      height: 58px;
-      object-fit: cover;
-      border-radius: 7px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      display: block;
+      width: 44px; height: 58px; object-fit: cover; border-radius: 7px;
+      background: var(--bg); border: 1px solid var(--border); display: block;
     }
-
     .sku { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12px; color: var(--muted); }
     .nome { font-weight: 700; }
-    .acoes { display: flex; gap: 6px; justify-content: flex-end; }
-    .vazio { padding: 48px 16px; text-align: center; color: var(--muted); font-style: italic; }
+    .acoes { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .vazio { padding: 40px 16px; text-align: center; color: var(--muted); font-style: italic; }
+    .vazio.carregando { animation: pulsar 1s ease-in-out infinite alternate; }
+    @keyframes pulsar { from { opacity: .5; } to { opacity: 1; } }
 
-    /* interruptor ativo/inativo */
+    /* barra de consumo */
+    .progresso { height: 8px; background: #EFEFEC; border-radius: 999px; overflow: hidden; }
+    .progresso > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width .3s; }
+    .progresso.alerta > span { background: var(--alerta); }
+    .progresso.erro > span { background: var(--erro); }
+
+    /* interruptor */
     .chave { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
     .chave input { position: absolute; opacity: 0; width: 0; height: 0; }
-
-    .chave .trilho {
-      width: 38px;
-      height: 21px;
-      border-radius: 999px;
-      background: #D4D4D2;
-      position: relative;
-      transition: background .15s;
-      flex-shrink: 0;
-    }
-
-    .chave .trilho::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      background: #fff;
-      transition: transform .15s;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
-    }
-
+    .chave .trilho { width: 38px; height: 21px; border-radius: 999px; background: #D4D4D2; position: relative; transition: background .15s; flex-shrink: 0; }
+    .chave .trilho::after { content: ''; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
     .chave input:checked + .trilho { background: var(--ok); }
     .chave input:checked + .trilho::after { transform: translateX(17px); }
     .chave input:focus-visible + .trilho { outline: 2px solid var(--secondary); outline-offset: 2px; }
     .chave .texto { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 
+    /* abas internas (detalhe da loja) */
+    .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+    .aba {
+      background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+      padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted);
+    }
+    .aba[aria-selected=true] { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* wizard */
+    .passos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+    .passo { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 6px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
+    .passo .num { width: 20px; height: 20px; border-radius: 50%; background: #EFEFEC; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+    .passo.atual { color: var(--primary); border-color: var(--primary); }
+    .passo.atual .num { background: var(--primary); color: #fff; }
+    .passo.feito .num { background: var(--ok); color: #fff; }
+
+    /* preview do totem (branding) */
+    .preview-totem {
+      border-radius: 18px; overflow: hidden; border: 1px solid var(--border);
+      background: #F9F9F7; padding: 22px 18px; text-align: center; min-height: 260px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    }
+    .preview-totem .logo { max-height: 48px; max-width: 70%; object-fit: contain; }
+    .preview-totem .nome { font-family: 'Playfair Display', serif; font-size: 26px; }
+    .preview-totem .botao { border-radius: 12px; padding: 12px 22px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+    .preview-totem .chip { border-radius: 999px; padding: 5px 12px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; }
+    .preview-totem .cards { display: flex; gap: 8px; margin-top: 4px; }
+    .preview-totem .card { width: 46px; height: 62px; border-radius: 8px; background: #fff; border: 2px solid transparent; }
+
     /* ---------- modais ---------- */
     .fundo-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(26, 26, 26, .45);
-      backdrop-filter: blur(3px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 60;
+      position: fixed; inset: 0; background: rgba(26, 26, 26, .45); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 60;
     }
-
+    #modal-confirmar { z-index: 70; }
     .modal {
-      background: var(--surface);
-      border-radius: 18px;
-      width: 100%;
-      max-width: 560px;
-      max-height: 92vh;
-      overflow-y: auto;
-      box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .35);
+      background: var(--surface); border-radius: 18px; width: 100%; max-width: 560px; max-height: 92vh;
+      overflow-y: auto; box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .35);
     }
-
-    .modal .topo-modal {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
+    .modal .topo-modal { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .modal .topo-modal h2 { font-size: 21px; }
     .modal .corpo { padding: 22px 24px; }
-    .modal .rodape { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+    .modal .rodape { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
     .fechar { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--muted); padding: 0 4px; }
     .fechar:hover { color: var(--primary); }
 
     .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .grade .largo { grid-column: 1 / -1; }
-
-    @media (max-width: 560px) { .grade { grid-template-columns: 1fr; } }
+    .grade-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .grade-3 .largo { grid-column: 1 / -1; }
+    .grade-lado { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 640px) { .grade, .grade-3, .grade-lado { grid-template-columns: 1fr; } }
 
     .caixa-imagem { display: flex; gap: 14px; align-items: flex-start; }
-
-    #form-preview {
-      width: 84px;
-      height: 112px;
-      object-fit: cover;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      flex-shrink: 0;
-    }
+    .preview-imagem { width: 84px; height: 112px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
 
     .marcador { display: flex; align-items: center; gap: 8px; }
     .marcador input { width: 16px; height: 16px; accent-color: var(--secondary); }
 
-    /* ---------- avisos flutuantes ---------- */
+    .lista-simples { list-style: none; margin: 0; padding: 0; }
+    .lista-simples li { padding: 10px 0; border-bottom: 1px solid #F1F1EF; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .lista-simples li:last-child { border-bottom: 0; }
+
+    pre.csv-exemplo { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 11px; overflow-x: auto; margin: 6px 0 0; }
+
+    /* ---------- avisos ---------- */
     #avisos { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 80; }
-
     .aviso {
-      background: var(--primary);
-      color: #fff;
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      max-width: 340px;
-      box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .4);
-      animation: entrar .18s ease-out;
+      background: var(--primary); color: #fff; padding: 12px 16px; border-radius: 10px; font-size: 13px;
+      max-width: 340px; box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .4); animation: entrar .18s ease-out;
     }
-
     .aviso.erro { background: var(--erro); }
     .aviso.ok { background: var(--ok); }
-
+    .aviso.alerta { background: var(--alerta); }
     @keyframes entrar { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
     [hidden] { display: none !important; }
@@ -358,15 +418,14 @@
 
 <body>
 
-  <!-- avisos (substituem alert()) -->
   <div id="avisos" aria-live="polite"></div>
 
   <!-- ============================ LOGIN ============================ -->
   <section id="tela-login" hidden>
     <div class="cartao">
       <div class="topo">
-        <h1>Painel do Catálogo</h1>
-        <p>AI Looks &middot; ferramenta de demonstração</p>
+        <h1>Painel Provva</h1>
+        <p>Gestão de operadores, lojas, unidades e vendedores</p>
       </div>
       <form id="form-login">
         <div id="login-erro" class="aviso-erro" hidden></div>
@@ -379,18 +438,29 @@
           <input type="password" id="login-senha" autocomplete="current-password" required>
         </div>
         <button type="submit" class="btn btn-primario" id="btn-entrar">Entrar</button>
-        <p class="dica">Use o usuário criado no painel do Supabase para esta loja.</p>
+        <p class="dica">Usuário do Supabase Auth vinculado a um papel do painel.</p>
       </form>
+    </div>
+  </section>
+
+  <!-- ====================== SEM VÍNCULO DE PAPEL ====================== -->
+  <section id="tela-sem-acesso" hidden>
+    <div style="max-width:520px;margin:80px auto;padding:0 20px;text-align:center">
+      <h1 style="font-size:26px;margin-bottom:10px">Conta sem acesso ao painel</h1>
+      <p style="color:var(--muted);line-height:1.6">Seu usuário existe no Supabase Auth, mas ainda não foi vinculado a um
+        papel (plataforma ou operador). Peça a alguém da plataforma para fazer o vínculo em <b>Usuários</b>.</p>
+      <p><span id="sem-acesso-email" class="dica"></span></p>
+      <button class="btn btn-neutro" id="btn-sair-sem-acesso">Sair</button>
     </div>
   </section>
 
   <!-- ============================ PAINEL ============================ -->
   <main id="tela-painel" hidden>
-    <div class="cabecalho">
-      <div>
-        <span class="selo">Demonstração</span>
-        <h1>Catálogo da loja</h1>
-        <p class="dica" style="margin:6px 0 0">Peças disponíveis para o totem. Peça inativa some do totem e continua aqui.</p>
+    <div class="topo-painel">
+      <div class="marca">
+        <span class="selo">Provva</span>
+        <h1>Painel de gestão</h1>
+        <span id="papel-usuario" class="badge"></span>
       </div>
       <div class="usuario">
         <span id="usuario-email"></span>
@@ -398,622 +468,100 @@
       </div>
     </div>
 
-    <div class="barra">
-      <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoria"></div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <span class="rotulo" id="contador">0 peças</span>
-        <button class="btn btn-primario" id="btn-nova">+ Nova peça</button>
-      </div>
-    </div>
+    <nav id="nav-links" aria-label="Seções"></nav>
 
-    <div class="quadro">
-      <div class="rolagem">
-        <table>
-          <thead>
-            <tr>
-              <th>Imagem</th>
-              <th>SKU</th>
-              <th>Nome</th>
-              <th>Categoria</th>
-              <th>Preço</th>
-              <th>Estoque</th>
-              <th>Ativo</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="corpo-tabela"></tbody>
-        </table>
-      </div>
-      <div class="vazio" id="estado-vazio" hidden></div>
-    </div>
+    <div id="rota"></div>
   </main>
 
-  <!-- ======================= MODAL FORMULÁRIO ======================= -->
-  <div class="fundo-modal" id="modal-form" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-form">
+  <!-- ======================= MODAL GENÉRICO ======================= -->
+  <div class="fundo-modal" id="modal-generico" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
       <div class="topo-modal">
-        <h2 id="titulo-form">Nova peça</h2>
-        <button class="fechar" type="button" id="btn-fechar-form" aria-label="Fechar">&times;</button>
+        <h2 id="modal-titulo"></h2>
+        <button class="fechar" type="button" id="modal-fechar" aria-label="Fechar">&times;</button>
       </div>
-      <form id="form-peca">
-        <div class="corpo">
-          <div id="form-erro" class="aviso-erro" hidden style="margin-bottom:14px"></div>
-
-          <div class="grade">
-            <div class="campo">
-              <label class="rotulo" for="f-sku">SKU</label>
-              <input type="text" id="f-sku" maxlength="40" placeholder="TOP-004">
-              <span class="erro-campo" id="e-sku"></span>
-            </div>
-
-            <div class="campo">
-              <label class="rotulo" for="f-categoria">Categoria</label>
-              <select id="f-categoria"></select>
-              <span class="erro-campo"></span>
-            </div>
-
-            <div class="campo largo">
-              <label class="rotulo" for="f-nome">Nome</label>
-              <input type="text" id="f-nome" maxlength="120" placeholder="Camisa Oxford Branca">
-              <span class="erro-campo" id="e-nome"></span>
-            </div>
-
-            <div class="campo">
-              <label class="rotulo" for="f-preco">Preço (R$)</label>
-              <input type="number" id="f-preco" min="0" step="0.01" placeholder="249,00">
-              <span class="erro-campo" id="e-preco"></span>
-            </div>
-
-            <div class="campo">
-              <label class="rotulo" for="f-estoque">Estoque</label>
-              <input type="number" id="f-estoque" min="0" step="1" value="0">
-              <span class="erro-campo" id="e-estoque"></span>
-            </div>
-
-            <div class="campo">
-              <label class="rotulo" for="f-ordem">Ordem na categoria</label>
-              <input type="number" id="f-ordem" min="0" step="1" value="0">
-              <span class="erro-campo" id="e-ordem"></span>
-            </div>
-
-            <div class="campo" style="justify-content:flex-end">
-              <label class="marcador">
-                <input type="checkbox" id="f-ativo" checked>
-                <span class="rotulo" style="color:var(--primary)">Ativa no totem</span>
-              </label>
-            </div>
-
-            <div class="campo largo">
-              <label class="rotulo" for="f-imagem">Imagem da peça</label>
-              <div class="caixa-imagem">
-                <img id="form-preview" alt="">
-                <div style="flex:1;display:flex;flex-direction:column;gap:8px">
-                  <input type="file" id="f-imagem" accept="image/png,image/jpeg,image/webp">
-                  <span class="dica" id="status-imagem">JPG e WEBP são convertidos para PNG. O arquivo vai para o
-                    bucket como &lt;SKU&gt;.png.</span>
-                  <span class="erro-campo" id="e-imagem"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="rodape">
-          <button type="button" class="btn btn-neutro" id="btn-cancelar-form">Cancelar</button>
-          <button type="submit" class="btn btn-primario" id="btn-salvar">Salvar peça</button>
-        </div>
-      </form>
+      <div class="corpo" id="modal-corpo"></div>
+      <div class="rodape" id="modal-rodape"></div>
     </div>
   </div>
 
   <!-- ====================== MODAL CONFIRMAÇÃO ====================== -->
   <div class="fundo-modal" id="modal-confirmar" hidden>
     <div class="modal" style="max-width:420px" role="alertdialog" aria-modal="true" aria-labelledby="titulo-confirmar">
-      <div class="topo-modal">
-        <h2 id="titulo-confirmar">Excluir peça</h2>
-      </div>
-      <div class="corpo">
-        <p id="texto-confirmar" style="margin:0;line-height:1.6"></p>
-      </div>
+      <div class="topo-modal"><h2 id="titulo-confirmar">Tem certeza?</h2></div>
+      <div class="corpo"><p id="texto-confirmar" style="margin:0;line-height:1.6"></p></div>
       <div class="rodape">
         <button type="button" class="btn btn-neutro" id="btn-nao">Cancelar</button>
-        <button type="button" class="btn btn-perigo" id="btn-sim">Excluir</button>
+        <button type="button" class="btn btn-perigo" id="btn-sim">Confirmar</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="painel/ui.js"></script>
+  <script src="painel/api.js"></script>
+  <script src="painel/router.js"></script>
+  <script src="painel/csv.js"></script>
+  <script src="painel/catalogo.js"></script>
+  <script src="painel/branding.js"></script>
+  <script src="painel/unidades.js"></script>
+  <script src="painel/lojas.js"></script>
+  <script src="painel/operadores.js"></script>
+  <script src="painel/usuarios.js"></script>
+  <script src="painel/consumo.js"></script>
+  <script src="painel/wizard.js"></script>
   <script>
-    /* =================================================================
-       Painel do Catálogo — AI Looks (Demo Totem)
-       CRUD de catalogo_loja + upload de imagem no bucket "catalogo".
-       Autenticação: Supabase Auth. Escrita liberada só para autenticados
-       pelas policies em supabase/02_painel_policies.sql.
-    ================================================================= */
+    /* Boot da casca: login, papel e navegação. As telas se registram no router ao carregar. */
+    (() => {
+      const $ = UI.$;
+      const PAPEL_ROTULO = { plataforma: 'Plataforma', operador: 'Operador', loja: 'Loja' };
 
-    const SUPABASE_URL = 'https://agzknkebggfytlqcsuuu.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnemtua2ViZ2dmeXRscWNzdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDMzODUsImV4cCI6MjA4NjM3OTM4NX0.c2pFotvELY6ZopuQSMlzqUwluKc0HenIAvWuZVclQz0';
-
-    // Uma loja só nesta demo. Mesmo id usado pelo totem (totem.js).
-    const LOJA_ID = '00000000-0000-0000-0000-000000000001';
-    const TABELA = 'catalogo_loja';
-    const BUCKET = 'catalogo';
-
-    // Ordem canônica das categorias — a mesma do totem, não a alfabética.
-    const CATEGORIAS = [
-      { valor: 'top', rotulo: 'Parte de cima' },
-      { valor: 'bottom', rotulo: 'Parte de baixo' },
-      { valor: 'calcado', rotulo: 'Calçados' },
-      { valor: 'acessorio', rotulo: 'Acessórios' },
-    ];
-    const ORDEM_CATEGORIAS = CATEGORIAS.map(c => c.valor);
-    const TIPOS_ACEITOS = ['image/png', 'image/jpeg', 'image/webp'];
-    // SKU vira nome de arquivo (<SKU>.png), então fica restrito a caracteres seguros.
-    const SKU_VALIDO = /^[A-Za-z0-9._-]+$/;
-
-    let cliente = null;
-    let pecas = [];
-    let filtroCategoria = 'todas';
-    let editando = null;      // peça em edição, ou null quando é criação
-    let imagemPendente = null; // File escolhido que ainda não subiu (SKU faltando)
-    let imagemUrl = null;      // URL pública já definida para a peça do formulário
-
-    const $ = id => document.getElementById(id);
-    const esc = t => String(t ?? '').replace(/[&<>"']/g, c => (
-      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
-    const rotuloCategoria = v => (CATEGORIAS.find(c => c.valor === v) || {}).rotulo || v;
-    const emReais = centavos => (Number(centavos || 0) / 100)
-      .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-    /* ---------------------- avisos (sem alert) ---------------------- */
-    function aviso(mensagem, tipo = 'ok') {
-      const el = document.createElement('div');
-      el.className = 'aviso ' + tipo;
-      el.textContent = mensagem;
-      $('avisos').appendChild(el);
-      setTimeout(() => el.remove(), 4500);
-      return el;
-    }
-
-    /* ------------------- confirmação (sem confirm) ------------------ */
-    function confirmar(texto) {
-      return new Promise(resolve => {
-        $('texto-confirmar').textContent = texto;
-        $('modal-confirmar').hidden = false;
-        const encerrar = resposta => {
-          $('modal-confirmar').hidden = true;
-          $('btn-sim').onclick = null;
-          $('btn-nao').onclick = null;
-          resolve(resposta);
-        };
-        $('btn-sim').onclick = () => encerrar(true);
-        $('btn-nao').onclick = () => encerrar(false);
-      });
-    }
-
-    /* ============================ AUTH ============================= */
-    async function entrar(ev) {
-      ev.preventDefault();
-      const btn = $('btn-entrar');
-      $('login-erro').hidden = true;
-      btn.disabled = true;
-      btn.textContent = 'Entrando...';
-      try {
-        const { error } = await cliente.auth.signInWithPassword({
-          email: $('login-email').value.trim(),
-          password: $('login-senha').value,
-        });
-        if (error) throw error;
-      } catch (e) {
-        const msg = /invalid login/i.test(e.message || '')
-          ? 'E-mail ou senha incorretos.'
-          : (e.message || 'Não foi possível entrar.');
-        $('login-erro').textContent = msg;
-        $('login-erro').hidden = false;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
-    }
-
-    async function sair() {
-      await cliente.auth.signOut();
-    }
-
-    function aplicarSessao(sessao) {
-      const logado = !!sessao;
-      $('tela-login').hidden = logado;
-      $('tela-painel').hidden = !logado;
-      if (logado) {
-        $('usuario-email').textContent = sessao.user?.email || '';
-        $('login-senha').value = '';
-        carregarPecas();
-      } else {
-        pecas = [];
-      }
-    }
-
-    /* ====================== LEITURA / LISTAGEM ===================== */
-    function ordenar(lista) {
-      const idx = c => {
-        const i = ORDEM_CATEGORIAS.indexOf(c);
-        return i === -1 ? ORDEM_CATEGORIAS.length : i;
-      };
-      return [...lista].sort((a, b) =>
-        idx(a.categoria) - idx(b.categoria) ||
-        (Number(a.ordem || 0) - Number(b.ordem || 0)) ||
-        String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR')
-      );
-    }
-
-    async function carregarPecas() {
-      try {
-        const { data, error } = await cliente.from(TABELA).select('*').eq('loja_id', LOJA_ID);
-        if (error) throw error;
-        pecas = ordenar(data || []);
-        renderTabela();
-      } catch (e) {
-        console.error(e);
-        aviso('Erro ao carregar o catálogo: ' + (e.message || e), 'erro');
-      }
-    }
-
-    function renderFiltros() {
-      const opcoes = [{ valor: 'todas', rotulo: 'Todas' }, ...CATEGORIAS];
-      $('filtros').innerHTML = '';
-      opcoes.forEach(o => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'filtro';
-        b.textContent = o.rotulo;
-        b.dataset.categoria = o.valor;
-        b.setAttribute('aria-pressed', String(filtroCategoria === o.valor));
-        b.onclick = () => { filtroCategoria = o.valor; renderFiltros(); renderTabela(); };
-        $('filtros').appendChild(b);
-      });
-    }
-
-    function renderTabela() {
-      const lista = filtroCategoria === 'todas'
-        ? pecas
-        : pecas.filter(p => p.categoria === filtroCategoria);
-
-      $('contador').textContent = lista.length === 1 ? '1 peça' : lista.length + ' peças';
-      const corpo = $('corpo-tabela');
-      corpo.innerHTML = '';
-
-      if (lista.length === 0) {
-        $('estado-vazio').hidden = false;
-        $('estado-vazio').textContent = pecas.length === 0
-          ? 'Nenhuma peça cadastrada. Use o botão "Nova peça" para começar.'
-          : 'Nenhuma peça nesta categoria.';
-        return;
-      }
-      $('estado-vazio').hidden = true;
-
-      lista.forEach(p => {
-        const tr = document.createElement('tr');
-        tr.dataset.id = p.id;
-        tr.dataset.sku = p.sku;
-        if (!p.ativo) tr.classList.add('inativa');
-        tr.innerHTML = `
-          <td><img class="miniatura" src="${esc(p.imagem_url)}" alt="${esc(p.nome)}"></td>
-          <td class="sku">${esc(p.sku)}</td>
-          <td class="nome">${esc(p.nome)}</td>
-          <td>${esc(rotuloCategoria(p.categoria))}</td>
-          <td>${emReais(p.preco_centavos)}</td>
-          <td>${esc(p.estoque)}</td>
-          <td>
-            <label class="chave">
-              <input type="checkbox" class="alternar-ativo" ${p.ativo ? 'checked' : ''}
-                     aria-label="Ativar ou desativar ${esc(p.nome)}">
-              <span class="trilho"></span>
-              <span class="texto">${p.ativo ? 'Ativa' : 'Inativa'}</span>
-            </label>
-          </td>
-          <td>
-            <div class="acoes">
-              <button type="button" class="btn-mini editar">Editar</button>
-              <button type="button" class="btn-mini perigo excluir">Excluir</button>
-            </div>
-          </td>`;
-        tr.querySelector('.alternar-ativo').onchange = ev => alternarAtivo(p, ev.target);
-        tr.querySelector('.editar').onclick = () => abrirForm(p);
-        tr.querySelector('.excluir').onclick = () => excluirPeca(p);
-        corpo.appendChild(tr);
-      });
-    }
-
-    /* ==================== ATIVAR / DESATIVAR ====================== */
-    async function alternarAtivo(peca, caixa) {
-      const novo = caixa.checked;
-      caixa.disabled = true;
-      try {
-        const { error } = await cliente.from(TABELA).update({ ativo: novo }).eq('id', peca.id);
-        if (error) throw error;
-        peca.ativo = novo;
-        aviso(`"${peca.nome}" ${novo ? 'ativada' : 'desativada'}.`, 'ok');
-        renderTabela();
-      } catch (e) {
-        caixa.checked = !novo; // desfaz o toggle na tela
-        aviso('Não foi possível alterar: ' + (e.message || e), 'erro');
-      } finally {
-        caixa.disabled = false;
-      }
-    }
-
-    /* ========================== IMAGEM ============================ */
-    // JPG/JPEG/WEBP viram PNG antes de subir; PNG sobe como está.
-    async function converterParaPng(arquivo) {
-      if (arquivo.type === 'image/png') return arquivo;
-      const url = URL.createObjectURL(arquivo);
-      try {
-        const img = new Image();
-        await new Promise((ok, falha) => {
-          img.onload = ok;
-          img.onerror = () => falha(new Error('Não foi possível ler a imagem escolhida.'));
-          img.src = url;
-        });
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        return await new Promise((ok, falha) => canvas.toBlob(
-          b => b ? ok(b) : falha(new Error('Falha ao converter a imagem para PNG.')), 'image/png'));
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    }
-
-    // Sobe <SKU>.png na raiz do bucket, substituindo o que estiver lá.
-    async function subirImagem(sku, arquivo) {
-      const png = await converterParaPng(arquivo);
-      const caminho = `${sku}.png`;
-      const { error } = await cliente.storage.from(BUCKET)
-        .upload(caminho, png, { upsert: true, contentType: 'image/png' });
-      if (error) throw error;
-      const publica = cliente.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
-      // O nome do arquivo é sempre o mesmo, então versiona a URL para não servir cache velho.
-      return `${publica}?v=${Date.now()}`;
-    }
-
-    async function removerImagem(sku) {
-      const { error } = await cliente.storage.from(BUCKET).remove([`${sku}.png`]);
-      if (error) throw error;
-    }
-
-    async function aoEscolherImagem(ev) {
-      const arquivo = ev.target.files && ev.target.files[0];
-      $('e-imagem').textContent = '';
-      if (!arquivo) return;
-
-      if (!TIPOS_ACEITOS.includes(arquivo.type)) {
-        $('e-imagem').textContent = 'Formato não aceito. Use PNG, JPG ou WEBP.';
-        ev.target.value = '';
-        return;
-      }
-
-      $('form-preview').src = URL.createObjectURL(arquivo); // preview antes do upload
-      imagemPendente = arquivo;
-
-      const sku = $('f-sku').value.trim();
-      if (!sku) {
-        $('status-imagem').textContent = 'Preencha o SKU: a imagem sobe como <SKU>.png ao salvar.';
-        return;
-      }
-      await enviarPendente(sku);
-    }
-
-    async function enviarPendente(sku) {
-      if (!imagemPendente) return;
-      $('status-imagem').textContent = 'Enviando imagem...';
-      $('btn-salvar').disabled = true;
-      try {
-        imagemUrl = await subirImagem(sku, imagemPendente);
-        $('form-preview').src = imagemUrl;  // preview depois do upload, já da URL pública
-        imagemPendente = null;
-        $('status-imagem').textContent = `Imagem enviada como ${sku}.png.`;
-      } catch (e) {
-        $('status-imagem').textContent = 'JPG e WEBP são convertidos para PNG.';
-        $('e-imagem').textContent = 'Falha ao enviar: ' + (e.message || e);
-        throw e;
-      } finally {
-        $('btn-salvar').disabled = false;
-      }
-    }
-
-    /* ========================= FORMULÁRIO ========================= */
-    function abrirForm(peca) {
-      editando = peca || null;
-      imagemPendente = null;
-      imagemUrl = peca ? peca.imagem_url : null;
-
-      $('titulo-form').textContent = peca ? 'Editar peça' : 'Nova peça';
-      $('form-erro').hidden = true;
-      ['e-sku', 'e-nome', 'e-preco', 'e-estoque', 'e-ordem', 'e-imagem'].forEach(id => $(id).textContent = '');
-
-      $('f-sku').value = peca ? peca.sku : '';
-      $('f-sku').readOnly = !!peca;  // SKU é chave junto com loja_id
-      $('f-nome').value = peca ? peca.nome : '';
-      $('f-categoria').value = peca ? peca.categoria : CATEGORIAS[0].valor;
-      $('f-preco').value = peca ? (Number(peca.preco_centavos || 0) / 100).toFixed(2) : '';
-      $('f-estoque').value = peca ? Number(peca.estoque || 0) : 0;
-      $('f-ordem').value = peca ? Number(peca.ordem || 0) : 0;
-      $('f-ativo').checked = peca ? !!peca.ativo : true;
-      $('f-imagem').value = '';
-      $('form-preview').removeAttribute('src');
-      if (imagemUrl) $('form-preview').src = imagemUrl;
-      $('status-imagem').textContent = peca
-        ? 'Escolher uma nova imagem substitui o arquivo no bucket.'
-        : 'JPG e WEBP são convertidos para PNG. O arquivo vai para o bucket como <SKU>.png.';
-
-      $('modal-form').hidden = false;
-      $('f-' + (peca ? 'nome' : 'sku')).focus();
-    }
-
-    function fecharForm() {
-      $('modal-form').hidden = true;
-      editando = null;
-      imagemPendente = null;
-      imagemUrl = null;
-    }
-
-    function validar() {
-      let ok = true;
-      const erro = (id, msg) => { $(id).textContent = msg; if (msg) ok = false; };
-
-      const sku = $('f-sku').value.trim();
-      const nome = $('f-nome').value.trim();
-      const preco = $('f-preco').value.trim();
-      const estoque = $('f-estoque').value.trim();
-      const ordem = $('f-ordem').value.trim();
-
-      erro('e-sku', '');
-      erro('e-nome', '');
-      erro('e-preco', '');
-      erro('e-estoque', '');
-      erro('e-ordem', '');
-      erro('e-imagem', '');
-
-      if (!sku) erro('e-sku', 'Informe o SKU.');
-      else if (!SKU_VALIDO.test(sku)) erro('e-sku', 'Use apenas letras, números, ponto, hífen ou underline.');
-      else if (!editando && pecas.some(p => p.sku.toLowerCase() === sku.toLowerCase()))
-        erro('e-sku', 'Já existe uma peça com este SKU.');
-
-      if (!nome) erro('e-nome', 'Informe o nome.');
-
-      if (preco === '' || isNaN(Number(preco)) || Number(preco) < 0)
-        erro('e-preco', 'Informe um preço válido (0 ou mais).');
-
-      if (estoque === '' || !Number.isInteger(Number(estoque)) || Number(estoque) < 0)
-        erro('e-estoque', 'Estoque deve ser um inteiro maior ou igual a zero.');
-
-      if (ordem === '' || !Number.isInteger(Number(ordem)) || Number(ordem) < 0)
-        erro('e-ordem', 'Ordem deve ser um inteiro maior ou igual a zero.');
-
-      // imagem_url é NOT NULL no banco: peça nova exige imagem.
-      if (!editando && !imagemUrl && !imagemPendente) erro('e-imagem', 'Escolha uma imagem para a peça.');
-
-      return ok;
-    }
-
-    async function salvarPeca(ev) {
-      ev.preventDefault();
-      $('form-erro').hidden = true;
-      if (!validar()) return;
-
-      const sku = $('f-sku').value.trim();
-      const btn = $('btn-salvar');
-      btn.disabled = true;
-      btn.textContent = 'Salvando...';
-
-      try {
-        // Imagem escolhida antes do SKU sobe agora.
-        if (imagemPendente) await enviarPendente(sku);
-
-        const registro = {
-          nome: $('f-nome').value.trim(),
-          categoria: $('f-categoria').value,
-          preco_centavos: Math.round(Number($('f-preco').value) * 100),
-          estoque: Number($('f-estoque').value),
-          ordem: Number($('f-ordem').value),
-          ativo: $('f-ativo').checked,
-          imagem_url: imagemUrl,
-        };
-
-        if (editando) {
-          const { error } = await cliente.from(TABELA).update(registro).eq('id', editando.id);
-          if (error) throw error;
-          aviso(`"${registro.nome}" atualizada.`, 'ok');
-        } else {
-          const { error } = await cliente.from(TABELA)
-            .insert([{ ...registro, loja_id: LOJA_ID, sku }]);
-          if (error) throw error;
-          aviso(`"${registro.nome}" cadastrada.`, 'ok');
-        }
-
-        fecharForm();
-        await carregarPecas();
-      } catch (e) {
-        const duplicado = e.code === '23505' || /duplicate key|unique/i.test(e.message || '');
-        $('form-erro').textContent = duplicado
-          ? 'Já existe uma peça com este SKU nesta loja.'
-          : 'Não foi possível salvar: ' + (e.message || e);
-        $('form-erro').hidden = false;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Salvar peça';
-      }
-    }
-
-    /* =========================== EXCLUIR ========================== */
-    async function excluirPeca(peca) {
-      const sim = await confirmar(
-        `Excluir "${peca.nome}" (${peca.sku})? A peça sai do catálogo e a imagem é apagada do bucket.`);
-      if (!sim) return;
-
-      try {
-        const { error } = await cliente.from(TABELA).delete().eq('id', peca.id);
-        if (error) throw error;
-
-        // A linha já saiu; se o arquivo não sair, avisa mas não desfaz a exclusão.
+      async function entrar(ev) {
+        ev.preventDefault();
+        const btn = $('btn-entrar');
+        $('login-erro').hidden = true;
+        btn.disabled = true; btn.textContent = 'Entrando...';
         try {
-          await removerImagem(peca.sku);
-        } catch (eArquivo) {
-          aviso(`Peça excluída, mas a imagem ${peca.sku}.png continua no bucket.`, 'erro');
-          await carregarPecas();
+          await API.entrar($('login-email').value.trim(), $('login-senha').value);
+          $('login-senha').value = '';
+        } catch (e) {
+          $('login-erro').textContent = /invalid login/i.test(e.message || '') ? 'E-mail ou senha incorretos.' : (e.message || 'Não foi possível entrar.');
+          $('login-erro').hidden = false;
+        } finally {
+          btn.disabled = false; btn.textContent = 'Entrar';
+        }
+      }
+
+      function mostrar(tela) {
+        ['tela-login', 'tela-sem-acesso', 'tela-painel'].forEach(id => $(id).hidden = id !== tela);
+      }
+
+      API.onSessao((sessao, perfil) => {
+        if (!sessao) { mostrar('tela-login'); return; }
+        if (!perfil) {
+          $('sem-acesso-email').textContent = sessao.user?.email || '';
+          mostrar('tela-sem-acesso');
           return;
         }
-
-        aviso(`"${peca.nome}" excluída.`, 'ok');
-        await carregarPecas();
-      } catch (e) {
-        aviso('Não foi possível excluir: ' + (e.message || e), 'erro');
-      }
-    }
-
-    /* ======================== INICIALIZAÇÃO ======================= */
-    function montarSelects() {
-      $('f-categoria').innerHTML = CATEGORIAS
-        .map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('');
-    }
-
-    function ligarEventos() {
-      $('form-login').addEventListener('submit', entrar);
-      $('btn-sair').onclick = sair;
-      $('btn-nova').onclick = () => abrirForm(null);
-      $('btn-fechar-form').onclick = fecharForm;
-      $('btn-cancelar-form').onclick = fecharForm;
-      $('form-peca').addEventListener('submit', salvarPeca);
-      $('f-imagem').addEventListener('change', aoEscolherImagem);
-      // SKU digitado depois da imagem: sobe o arquivo que ficou pendente.
-      $('f-sku').addEventListener('blur', () => {
-        const sku = $('f-sku').value.trim();
-        if (imagemPendente && sku && SKU_VALIDO.test(sku)) enviarPendente(sku).catch(() => { });
+        $('usuario-email').textContent = sessao.user?.email || '';
+        $('papel-usuario').textContent = PAPEL_ROTULO[perfil.papel] || perfil.papel;
+        mostrar('tela-painel');
+        Rotas.montarNav(perfil);
+        Rotas.render();
       });
-    }
 
-    async function iniciar() {
-      montarSelects();
-      renderFiltros();
-      ligarEventos();
-      cliente.auth.onAuthStateChange((_evento, sessao) => aplicarSessao(sessao));
-      const { data } = await cliente.auth.getSession();
-      aplicarSessao(data ? data.session : null);
-    }
+      $('form-login').addEventListener('submit', entrar);
+      $('btn-sair').onclick = () => API.sair();
+      $('btn-sair-sem-acesso').onclick = () => API.sair();
+      Rotas.ligar();
 
-    // Modo de teste (_test_painel.html): o dublê do cliente entra por aqui.
-    if (new URLSearchParams(location.search).has('teste')) {
-      window.__painelTeste = {
-        iniciarCom(dubles) { cliente = dubles; return iniciar(); },
-        estado: () => ({ pecas, filtroCategoria, editando, imagemUrl, imagemPendente }),
-        abrirForm, fecharForm, salvarPeca, carregarPecas,
-      };
-    } else {
-      cliente = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      iniciar();
-    }
+      // Modo de teste (_test_painel.html): o dublê do cliente entra por aqui.
+      if (new URLSearchParams(location.search).has('teste')) {
+        window.__painelTeste = { iniciarCom: dubles => API.iniciar(dubles) };
+      } else {
+        API.iniciar();
+      }
+    })();
   </script>
 </body>
 

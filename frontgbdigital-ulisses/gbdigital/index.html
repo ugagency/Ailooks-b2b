@@ -5,9 +5,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
-  <title>AI Looks | Demo Totem</title>
+  <title>Provador virtual</title>
   <style>
-    /* Demo Totem: tudo que depende de login fica oculto (Salvar boneco, Salvar no guarda-roupa, abas de conta) */
+    /* Branding dinâmico (Provva): totem.js sobrescreve estas variáveis com as cores da loja
+       ANTES de revelar o app. Os valores aqui são o padrão neutro (loja sem branding). */
+    :root {
+      --cor-primaria: #1A1A1A;
+      --cor-primaria-rgb: 26 26 26;
+      --cor-primaria-contraste: #FFFFFF;
+      --cor-secundaria: #8E8E93;
+      --cor-secundaria-rgb: 142 142 147;
+      --cor-secundaria-contraste: #FFFFFF;
+    }
+    /* Tudo que depende de conta B2C fica oculto (Salvar boneco, Salvar no guarda-roupa, abas de conta) */
     .auth-only { display: none !important; }
   </style>
 
@@ -18,8 +28,8 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
     rel="stylesheet">
 
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CDN (v3 fixado: as cores via rgb(var(--x) / <alpha-value>) dependem do JIT v3) -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -34,8 +44,12 @@
             serif: ['Playfair Display', 'serif'],
           },
           colors: {
-            primary: '#1A1A1A',       // Preto Carvão (Sofisticado)
-            secondary: '#C78D75',     // Terracota (Acento de Moda)
+            // Cores da loja: vêm das variáveis CSS setadas por totem.js (branding dinâmico).
+            // O formato rgb(var() / <alpha-value>) mantém os modificadores de opacidade (bg-primary/40).
+            primary: 'rgb(var(--cor-primaria-rgb) / <alpha-value>)',
+            secondary: 'rgb(var(--cor-secundaria-rgb) / <alpha-value>)',
+            onprimary: 'var(--cor-primaria-contraste)',     // texto legível sobre primary
+            onsecondary: 'var(--cor-secundaria-contraste)', // texto legível sobre secondary
             bg: '#F9F9F7',            // Off-White (Papel de Revista)
             surface: '#FFFFFF',       // Branco Puro
             muted: '#8E8E93',         // Cinza Médio
@@ -58,7 +72,14 @@
 
 <body class="bg-bg text-primary font-sans min-h-screen antialiased selection:bg-secondary selection:text-white">
 
-  <!-- Login/Register Overlay -->
+  <!-- Tela neutra de carregamento: visível até a sessão do vendedor ser validada e o branding aplicado.
+       Usa cinzas literais de propósito: nunca mostra cor de loja antes da hora. -->
+  <div id="telaCarregando" class="fixed inset-0 z-[300] bg-[#F9F9F7] flex flex-col items-center justify-center gap-4">
+    <span class="inline-block w-10 h-10 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"></span>
+    <p class="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold">Carregando</p>
+  </div>
+
+  <!-- Login do vendedor (overlay herdado do B2C; totem.js esconde fechar/criar conta/esqueci a senha) -->
   <div id="authOverlay"
     class="fixed inset-0 bg-primary/40 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
     <div class="bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in relative">
@@ -68,9 +89,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-      <div class="bg-primary p-6 text-white text-center">
-        <h2 class="font-serif text-3xl font-bold mb-2">Bem-vindo ao AI Looks</h2>
-        <p class="text-gray-300 text-sm">Sua consultoria de estilo pessoal inteligente.</p>
+      <div class="bg-primary p-6 text-onprimary text-center">
+        <h2 class="font-serif text-3xl font-bold mb-2">Entrar</h2>
+        <p class="text-gray-300 text-sm">Acesso do vendedor ao provador virtual.</p>
       </div>
 
       <div class="p-8">
@@ -114,8 +135,8 @@
           </div>
 
           <button type="submit" id="authSubmitBtn"
-            class="w-full bg-primary text-white py-4 rounded-xl font-medium transition-all hover:bg-black shadow-lg">
-            Acessar Sistema
+            class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium transition-all hover:opacity-90 shadow-lg">
+            Entrar
           </button>
 
           <div class="text-center pt-4 space-y-2 border-t border-gray-100 mt-4">
@@ -139,7 +160,7 @@
           </div>
           <h3 class="text-xl font-bold text-primary">Conta criada com sucesso!</h3>
           <p class="text-sm text-muted">Você já pode acessar o sistema.</p>
-          <button id="authSuccessBtn" class="w-full bg-primary text-white py-4 rounded-xl font-medium">
+          <button id="authSuccessBtn" class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium">
             Entrar Agora
           </button>
         </div>
@@ -160,7 +181,7 @@
       <p class="text-muted text-sm mb-6">Você atingiu o limite de 3 gerações gratuitas. Crie uma conta para continuar
         transformando seu estilo ilimitadamente!</p>
       <button onclick="window.location.reload()"
-        class="w-full bg-primary text-white py-4 rounded-xl font-medium transition-all hover:bg-black shadow-lg">
+        class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium transition-all hover:bg-black shadow-lg">
         Criar Conta Agora
       </button>
       <button onclick="document.getElementById('limitModal').classList.add('hidden')"
@@ -180,7 +201,7 @@
       </div>
       <div class="flex items-center gap-3">
         <button id="addClosetItemBtn"
-          class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
+          class="bg-primary text-onprimary px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -218,7 +239,7 @@
       </div>
       <div class="flex items-center gap-3">
         <button id="addAvatarBtn"
-          class="bg-primary text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
+          class="bg-primary text-onprimary px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -287,7 +308,7 @@
       <h3 id="notificationTitle" class="font-serif text-xl font-bold mb-2 text-primary">Aviso</h3>
       <p id="notificationMessage" class="text-muted text-sm mb-6 leading-relaxed">Mensagem do sistema.</p>
       <button onclick="document.getElementById('notificationModal').classList.add('hidden')"
-        class="w-full bg-primary text-white py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-black shadow-lg">
+        class="w-full bg-primary text-onprimary py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-black shadow-lg">
         Entendi
       </button>
     </div>
@@ -319,15 +340,25 @@
     </div>
   </div>
 
-  <div id="appContent" class="block">
+  <!-- hidden até totem.js validar a sessão e aplicar o branding -->
+  <div id="appContent" class="hidden">
 
     <div class="max-w-4xl mx-auto px-4 py-8 md:py-12">
 
       <header class="mb-10 text-center relative z-10">
-        <div
-          class="inline-block bg-primary text-white text-[10px] uppercase tracking-[0.2em] px-3 py-1 mb-3 rounded-full">
-          Demo Totem</div>
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-3 tracking-tight text-primary">AI Looks</h1>
+        <div class="flex items-center justify-between gap-3 mb-5 text-left">
+          <span id="unidadeNome"
+            class="inline-block bg-primary text-onprimary text-[10px] uppercase tracking-[0.2em] px-3 py-1 rounded-full truncate max-w-[55%]">&nbsp;</span>
+          <div class="flex items-center gap-2 shrink-0">
+            <span id="creditosPill" title=""
+              class="text-[10px] uppercase tracking-widest font-bold text-muted bg-white border border-gray-200 rounded-full px-3 py-1">Gerações do mês: —</span>
+            <button id="btnSair" type="button"
+              class="text-[10px] uppercase tracking-widest font-bold text-muted hover:text-primary px-2 py-1">Sair</button>
+          </div>
+        </div>
+        <!-- Logo da loja (branding). Sem logo, o nome de exibição aparece no h1. -->
+        <img id="lojaLogo" alt="" class="hidden max-h-20 mx-auto mb-3 object-contain">
+        <h1 id="lojaNome" class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-3 tracking-tight text-primary">AI Looks</h1>
         <p class="text-muted text-lg font-light max-w-md mx-auto">Experimente as peças da loja em você. <br>Tire uma
           foto, escolha uma peça, veja o look completo.</p>
       </header>
@@ -347,7 +378,7 @@
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="font-serif text-xl font-bold flex items-center gap-2">
                     <span
-                      class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs">1</span>
+                      class="w-6 h-6 bg-primary text-onprimary rounded-full flex items-center justify-center text-xs">1</span>
                     Sua foto
                   </h2>
                   <span class="text-xs text-secondary font-medium uppercase tracking-wider">Obrigatório</span>
@@ -427,7 +458,7 @@
                   <!-- Filtro de Gênero -->
                   <div class="flex gap-2 mb-4">
                     <button id="btn-manequin-male" onclick="filterManequin('male')"
-                      class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-primary text-white rounded-lg transition-all">Masculino</button>
+                      class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-primary text-onprimary rounded-lg transition-all">Masculino</button>
                     <button id="btn-manequin-female" onclick="filterManequin('female')"
                       class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-gray-100 text-muted rounded-lg hover:bg-gray-200 transition-all">Feminino</button>
                   </div>
@@ -490,7 +521,7 @@
               <div class="mb-5">
                 <h2 class="font-serif text-xl font-bold flex items-center gap-2 mb-4">
                   <span
-                    class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs">2</span>
+                    class="w-6 h-6 bg-primary text-onprimary rounded-full flex items-center justify-center text-xs">2</span>
                   Escolha a peça
                 </h2>
 
@@ -716,7 +747,7 @@
               </div>
 
               <button id="generateBtn"
-                class="w-full group relative overflow-hidden rounded-xl bg-primary text-white py-4 font-medium transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                class="w-full group relative overflow-hidden rounded-xl bg-primary text-onprimary py-4 font-medium transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                 <div
                   class="absolute inset-0 w-0 bg-secondary transition-all duration-[250ms] ease-out group-hover:w-full">
                 </div>
@@ -809,7 +840,7 @@
                   <input type="text" id="chat-input" placeholder="Pergunte sobre estilo..."
                     class="flex-1 bg-gray-100 text-sm rounded-full px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary placeholder-gray-400 text-primary">
                   <button id="send-chat-btn"
-                    class="bg-primary text-white p-3 rounded-full hover:bg-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="bg-primary text-onprimary p-3 rounded-full hover:bg-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform rotate-90" viewBox="0 0 20 20"
                       fill="currentColor">
                       <path
@@ -855,7 +886,7 @@
       </main>
 
       <footer class="mt-12 text-center text-[10px] text-gray-400 font-medium uppercase tracking-widest">
-        AI Looks &copy; 2025 • Fashion Tech Intelligence
+        <span id="rodapeNome">AI Looks</span> &copy; 2026 • Provador virtual Provva
       </footer>
     </div>
 
@@ -903,7 +934,7 @@
 
   </div> <!-- Fim do #appContent -->
 
-  <!-- Demo Totem: totem.js substitui auth.js (sem login). Para voltar ao B2C, trocar por auth.js. -->
+  <!-- Provva: totem.js faz o bootstrap (sessão do vendedor, branding, créditos). auth.js é o legado B2C. -->
   <script src="totem.js" defer></script>
   <script src="script.js" defer></script>
   <!-- Innovative Floating Navbar -->

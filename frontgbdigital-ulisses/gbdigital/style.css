@@ -139,9 +139,9 @@ img {
     left: 0;
     width: 100%;
     height: 2px;
-    background: #C78D75;
-    /* Cor Terracota */
-    box-shadow: 0 0 15px #C78D75, 0 0 5px rgba(255, 255, 255, 0.5);
+    background: var(--cor-secundaria, #C78D75);
+    /* Cor secundária da loja (branding dinâmico) */
+    box-shadow: 0 0 15px var(--cor-secundaria, #C78D75), 0 0 5px rgba(255, 255, 255, 0.5);
     animation: scan 2s infinite linear;
     display: none;
     /* Inicia oculto, ativado via JS */
@@ -193,8 +193,8 @@ img {
     height: 40px;
     border-radius: 50%;
     border: 3px solid transparent;
-    border-bottom-color: #C78D75;
-    /* Acento Terracota */
+    border-bottom-color: var(--cor-secundaria, #C78D75);
+    /* Acento na cor secundária da loja */
 }
 
 @keyframes rotation {
@@ -308,8 +308,8 @@ img {
 }
 
 .nav-item:hover {
-    background: rgba(199, 141, 117, 0.2);
-    color: #C78D75;
+    background: rgb(var(--cor-secundaria-rgb, 199 141 117) / 0.2);
+    color: var(--cor-secundaria, #C78D75);
 }
 
 .nav-item:hover svg {

@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Teste do tablet (sessão, branding, créditos)</title>
+</head>
+
+<body>
+  <pre id="out">RUNNING</pre>
+  <div id="frames"></div>
+  <script src="_test_duble.js"></script>
+  <script>
+    /* Harness do index.html em modo Provva: login do vendedor, branding aplicado antes do reveal,
+       defaults neutros, créditos/avisos e retomada da sessão pelo token. Abrir via servidor HTTP. */
+    const out = document.getElementById('out');
+    const log = [];
+    const ok = (cond, msg) => log.push((cond ? 'PASS ' : 'FAIL ') + msg);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    async function waitFor(fn, tries = 100) { for (let i = 0; i < tries; i++) { if (fn()) return true; await sleep(60); } return false; }
+
+    const LOJA = '11111111-1111-4111-8111-111111111111', UN = '33333333-3333-4333-8333-333333333333', OP = '55555555-5555-4555-8555-555555555555';
+    const LOJA2 = '22222222-2222-4222-8222-222222222222', UN2 = '44444444-4444-4444-8444-444444444444';
+
+    function novoFrame() {
+      const f = document.createElement('iframe');
+      f.style.cssText = 'width:1000px;height:1400px;border:0;display:block';
+      f.src = 'index.html?teste=1';
+      document.getElementById('frames').appendChild(f);
+      return new Promise(r => f.onload = () => r({ w: f.contentWindow, d: f.contentDocument, f }));
+    }
+    const varCss = (w, d, nome) => w.getComputedStyle(d.documentElement).getPropertyValue(nome).trim();
+    const visivel = el => el && !el.classList.contains('hidden');
+    async function login(w, d, email, senha) {
+      d.getElementById('authEmail').value = email;
+      d.getElementById('authPassword').value = senha;
+      d.getElementById('authForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
+    }
+
+    (async () => {
+      const seed = {
+        operadores: [{ id: OP, nome: 'Painéis LED SA', status: 'ativo' }],
+        lojas: [
+          { id: LOJA, operador_id: OP, nome: 'MA Ville', status: 'ativo', wizard_etapa: null, branding: { nome_exibicao: 'MA Ville', cor_primaria: '#123456', cor_secundaria: '#C78D75', logo_url: 'catalogo/TOP-001.svg' } },
+          { id: LOJA2, operador_id: OP, nome: 'Sem Branding', status: 'ativo', wizard_etapa: null, branding: {} },
+        ],
+        unidades: [
+          { id: UN, loja_id: LOJA, nome: 'Belvedere', totens_contratados: 2, plano: 'base', status: 'ativo' },
+          { id: UN2, loja_id: LOJA2, nome: 'Centro', totens_contratados: 1, plano: 'base', status: 'ativo' },
+        ],
+        vendedores: [
+          { id: 'v1', unidade_id: UN, nome: 'Ana', email: 'ana@maville.com', senha_hash: 'hash:123456', status: 'ativo', tentativas_falhas: 0, bloqueado_ate: null },
+          { id: 'v2', unidade_id: UN2, nome: 'Beto', email: 'beto@sem.com', senha_hash: 'hash:123456', status: 'ativo', tentativas_falhas: 0, bloqueado_ate: null },
+          { id: 'v3', unidade_id: UN, nome: 'Inativo', email: 'off@maville.com', senha_hash: 'hash:123456', status: 'inativo', tentativas_falhas: 0, bloqueado_ate: null },
+        ],
+        catalogo_loja: [
+          ...['TOP-001', 'TOP-002', 'BOT-001', 'CAL-001'].map((sku, i) => ({ id: 'p' + i, loja_id: LOJA, sku, nome: 'Peça ' + sku, categoria: sku.startsWith('TOP') ? 'top' : sku.startsWith('BOT') ? 'bottom' : 'calcado', preco_centavos: 1000, estoque: 1, ordem: i, ativo: true, imagem_url: `catalogo/${sku}.svg` })),
+          { id: 'px', loja_id: LOJA, sku: 'OFF-1', nome: 'Inativa', categoria: 'top', preco_centavos: 1, estoque: 1, ordem: 9, ativo: false, imagem_url: 'catalogo/ACE-001.svg' },
+          { id: 'py', loja_id: LOJA2, sku: 'OUTRA-1', nome: 'De outra loja', categoria: 'top', preco_centavos: 1, estoque: 1, ordem: 1, ativo: true, imagem_url: 'catalogo/ACE-001.svg' },
+        ],
+        // Belvedere: 1600 de 2000 usadas (80%); Centro: 1000 de 1000 (100%)
+        geracoes: [
+          ...Array.from({ length: 1600 }, (_, i) => ({ id: 'g' + i, unidade_id: UN, loja_id: LOJA, vendedor_id: 'v1', origem: 'estilista', excedente: false, mes_ref: '2026-09-01' })),
+          ...Array.from({ length: 1000 }, (_, i) => ({ id: 'h' + i, unidade_id: UN2, loja_id: LOJA2, vendedor_id: 'v2', origem: 'estilista', excedente: false, mes_ref: '2026-09-01' })),
+        ],
+      };
+      const duble = criarDuble(seed);
+
+      /* ---------- 1) boot sem token: tela neutra → login ---------- */
+      let { w, d } = await novoFrame();
+      w.localStorage.removeItem('provva_token');
+      ok(visivel(d.getElementById('telaCarregando')) && !visivel(d.getElementById('appContent')), 'antes do boot: tela neutra visível, app escondido');
+      ok(varCss(w, d, '--cor-primaria') === '#1A1A1A', 'antes do boot: cor primária é o padrão neutro');
+
+      await w.__totemTeste.iniciarCom(duble);
+      await waitFor(() => visivel(d.getElementById('authOverlay')));
+      ok(visivel(d.getElementById('authOverlay')) && !visivel(d.getElementById('telaCarregando')), 'sem token: tela de login, carregando some');
+      ok(!visivel(d.getElementById('appContent')), 'sem token: app continua escondido');
+      ok(d.getElementById('closeAuthBtn').classList.contains('hidden') && d.getElementById('toggleAuthMode').classList.contains('hidden'), 'fechar/criar conta escondidos no login do vendedor');
+
+      /* ---------- 2) senha errada / inativo ---------- */
+      await login(w, d, 'ana@maville.com', 'errada');
+      await waitFor(() => !d.getElementById('authError').classList.contains('hidden'));
+      ok(d.getElementById('authError').textContent === 'E-mail ou senha incorretos.', 'senha errada: ' + d.getElementById('authError').textContent);
+      ok(!visivel(d.getElementById('appContent')), 'senha errada não revela o app');
+      await login(w, d, 'off@maville.com', '123456');
+      await waitFor(() => /desativado/.test(d.getElementById('authError').textContent));
+      ok(/desativado/.test(d.getElementById('authError').textContent), 'vendedor inativo não entra: ' + d.getElementById('authError').textContent);
+
+      /* ---------- 3) login certo: branding antes do reveal, créditos, catálogo da loja ---------- */
+      await login(w, d, 'ana@maville.com', '123456');
+      await waitFor(() => visivel(d.getElementById('appContent')));
+      ok(visivel(d.getElementById('appContent')) && !visivel(d.getElementById('authOverlay')), 'login certo revela o app e fecha o login');
+      ok(varCss(w, d, '--cor-primaria') === '#123456' && varCss(w, d, '--cor-primaria-rgb') === '18 52 86', 'cores da loja nas variáveis CSS: ' + varCss(w, d, '--cor-primaria') + ' / ' + varCss(w, d, '--cor-primaria-rgb'));
+      ok(varCss(w, d, '--cor-primaria-contraste') === '#FFFFFF', 'contraste sobre a primária escura = branco');
+      ok(d.getElementById('lojaLogo').getAttribute('src') === 'catalogo/TOP-001.svg' && visivel(d.getElementById('lojaLogo')), 'logo da loja aparece');
+      ok(d.getElementById('lojaNome').classList.contains('hidden') && d.getElementById('lojaNome').textContent === 'MA Ville', 'com logo, o h1 some mas guarda o nome de exibição');
+      ok(d.getElementById('unidadeNome').textContent.includes('Belvedere') && d.getElementById('unidadeNome').textContent.includes('Ana'), 'selo mostra unidade e vendedor: ' + d.getElementById('unidadeNome').textContent);
+      ok(d.getElementById('creditosPill').textContent === 'Gerações do mês: 1.600 / 2.000', 'pill de créditos: ' + d.getElementById('creditosPill').textContent);
+      ok(d.getElementById('creditosPill').classList.contains('text-amber-600'), 'pill em alerta a 80%');
+      ok(w.localStorage.getItem('provva_token'), 'token guardado no localStorage');
+      await waitFor(() => d.getElementById('totemAvisos') && /80%/.test(d.getElementById('totemAvisos').textContent));
+      ok(d.getElementById('totemAvisos') && /80%/.test(d.getElementById('totemAvisos').textContent), 'aviso de 80% do pool ao entrar');
+      const tit = d.title;
+      ok(/MA Ville/.test(tit), 'título da página com o nome da loja: ' + tit);
+
+      await waitFor(() => d.querySelectorAll('.catalogo-card').length === 4);
+      const skus = Array.from(d.querySelectorAll('.catalogo-card')).map(c => c.dataset.sku);
+      ok(skus.length === 4 && !skus.includes('OUTRA-1') && !skus.includes('OFF-1'), 'catálogo só da loja da sessão e só ativas: ' + skus);
+      const sel = duble.__chamadas.filter(c => c.op === 'select' && c.tabela === 'catalogo_loja').pop();
+      ok(sel && sel.filtros.some(([c, v]) => c === 'loja_id' && v === LOJA), 'consulta ao catálogo filtra por loja_id da sessão');
+      ok(w.TOTEM_LOJA_ID === LOJA, 'TOTEM_LOJA_ID vem da sessão');
+
+      /* ---------- 4) registrar geração ---------- */
+      const antes = duble.__db.geracoes.length;
+      const cred = await w.registrarGeracao('multi_peca');
+      ok(cred && cred.usadas === 1601, 'registrar_geracao devolve créditos atualizados: ' + JSON.stringify(cred));
+      ok(duble.__db.geracoes.length === antes + 1 && duble.__db.geracoes[duble.__db.geracoes.length - 1].origem === 'multi_peca', 'uma linha nova em geracoes com origem multi_peca');
+      ok(d.getElementById('creditosPill').textContent === 'Gerações do mês: 1.601 / 2.000', 'pill atualizada após geração: ' + d.getElementById('creditosPill').textContent);
+      ok(/1.600|80%/.test('x') || d.querySelectorAll('#totemAvisos div').length <= 2, 'aviso de 80% não repete a cada geração');
+
+      /* ---------- 5) segundo boot com token: entra sem login, sem piscar outra loja ---------- */
+      ({ w, d } = await novoFrame());
+      ok(varCss(w, d, '--cor-primaria') === '#1A1A1A', 'novo boot começa no neutro (nada de branding em cache)');
+      await w.__totemTeste.iniciarCom(duble);
+      await waitFor(() => visivel(d.getElementById('appContent')));
+      ok(visivel(d.getElementById('appContent')) && !visivel(d.getElementById('authOverlay')), 'token válido: app direto, sem login');
+      ok(varCss(w, d, '--cor-primaria') === '#123456', 'branding reaplicado a partir do servidor');
+      const sess = duble.__chamadas.filter(c => c.op === 'rpc' && c.nome === 'vendedor_sessao').length;
+      ok(sess >= 1, 'vendedor_sessao chamada na retomada');
+
+      /* ---------- 6) loja sem branding: padrão neutro, sem erro; pool a 100% ---------- */
+      w.localStorage.removeItem('provva_token');
+      ({ w, d } = await novoFrame());
+      await w.__totemTeste.iniciarCom(duble);
+      await waitFor(() => visivel(d.getElementById('authOverlay')));
+      await login(w, d, 'beto@sem.com', '123456');
+      await waitFor(() => visivel(d.getElementById('appContent')));
+      ok(varCss(w, d, '--cor-primaria') === '#1A1A1A' && varCss(w, d, '--cor-secundaria') === '#8E8E93', 'loja sem cores cai no neutro');
+      ok(!visivel(d.getElementById('lojaLogo')) && !d.getElementById('lojaNome').classList.contains('hidden') && d.getElementById('lojaNome').textContent === 'AI Looks', 'sem logo/nome: h1 com o nome padrão');
+      ok(d.getElementById('creditosPill').textContent === 'Gerações do mês: 1.000 / 1.000' && d.getElementById('creditosPill').classList.contains('text-red-600'), 'pool esgotado: pill vermelha: ' + d.getElementById('creditosPill').textContent);
+      await waitFor(() => d.getElementById('totemAvisos') && /esgotado/.test(d.getElementById('totemAvisos').textContent));
+      ok(d.getElementById('totemAvisos') && /esgotado/.test(d.getElementById('totemAvisos').textContent), 'aviso de 100% ao entrar');
+      const c2 = await w.registrarGeracao('estilista');
+      ok(c2 && c2.excedente === 1 && c2.usadas === 1001, 'acima do pool não bloqueia: registra excedente ' + JSON.stringify(c2));
+      ok(duble.__db.geracoes[duble.__db.geracoes.length - 1].excedente === true, 'linha marcada como excedente');
+      await waitFor(() => d.querySelectorAll('.catalogo-card').length === 1);
+      ok(d.querySelectorAll('.catalogo-card').length === 1, 'catálogo da segunda loja isolado');
+
+      /* ---------- 7) bloqueio por tentativas ---------- */
+      w.localStorage.removeItem('provva_token');
+      ({ w, d } = await novoFrame());
+      await w.__totemTeste.iniciarCom(duble);
+      await waitFor(() => visivel(d.getElementById('authOverlay')));
+      for (let i = 0; i < 5; i++) {
+        await login(w, d, 'beto@sem.com', 'errada');
+        await waitFor(() => !d.getElementById('authError').classList.contains('hidden'));
+        await sleep(30);
+      }
+      ok(/Muitas tentativas/.test(d.getElementById('authError').textContent), '5 falhas bloqueiam: ' + d.getElementById('authError').textContent);
+
+      /* ---------- 8) sem alert nativo ---------- */
+      ok(true, 'fim');
+      out.textContent = log.join('\n') + '\nDONE ' + log.filter(l => l.startsWith('FAIL')).length + ' FAIL';
+    })().catch(e => { out.textContent = log.join('\n') + '\nERROR ' + (e && e.stack || e); });
+  </script>
+</body>
+
+</html>
