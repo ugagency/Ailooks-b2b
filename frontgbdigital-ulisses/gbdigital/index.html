@@ -143,18 +143,15 @@
         if (!user) { mostrarErro('Sem acesso.'); return; }
 
         // Tenta obter perfil para vendedor (busca na tabela vendedores).
-        try {
-          const { data: vendedor } = await cliente
-            .from('vendedores')
-            .select('id')
-            .eq('email', email)
-            .single();
-          if (vendedor) {
-            location.href = 'tablet.html';
-            return;
-          }
-        } catch (e) {
-          // Não é vendedor, continua.
+        const { data: vendedor, error: erroVendedor } = await cliente
+          .from('vendedores')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        if (erroVendedor) console.warn('checagem de vendedor:', erroVendedor);
+        if (vendedor) {
+          location.href = 'tablet.html';
+          return;
         }
 
         // Se chegou aqui, é loja/operador/plataforma.
