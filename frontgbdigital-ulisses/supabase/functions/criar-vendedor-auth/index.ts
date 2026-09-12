@@ -91,6 +91,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // 3) Vincula o vendedor ao user_id do Auth (RLS passa a checar por id, não e-mail).
+    const { error: erroVinculo } = await clienteAdmin.rpc('vincular_vendedor_auth', {
+      p_vendedor_id: vendedorId, p_user_id: authData.user!.id,
+    });
+    if (erroVinculo) {
+      await clienteAdmin.auth.admin.deleteUser(authData.user!.id);
+      await clienteUsuario.from('vendedores').delete().eq('id', vendedorId);
+      return new Response(JSON.stringify({ ok: false, erro: 'vincular_auth', detalhe: erroVinculo.message }), {
+        status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       vendedor_id: vendedorId,

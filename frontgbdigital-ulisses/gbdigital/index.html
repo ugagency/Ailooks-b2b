@@ -142,11 +142,11 @@
         const { data: { user } } = await cliente.auth.getUser();
         if (!user) { mostrarErro('Sem acesso.'); return; }
 
-        // Tenta obter perfil para vendedor (busca na tabela vendedores).
+        // Tenta obter perfil para vendedor (busca na tabela vendedores por user_id).
         const { data: vendedor, error: erroVendedor } = await cliente
           .from('vendedores')
           .select('id')
-          .eq('email', email)
+          .eq('user_id', user.id)
           .maybeSingle();
         if (erroVendedor) console.warn('checagem de vendedor:', erroVendedor);
         if (vendedor) {

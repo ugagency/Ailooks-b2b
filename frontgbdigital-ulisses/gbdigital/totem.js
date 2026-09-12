@@ -228,11 +228,13 @@ async function entrar(ev) {
             return;
         }
 
+        const { data: { user } } = await cliente.auth.getUser();
+
         // Busca os dados do vendedor para iniciar a sessão.
         const { data: vendedor } = await cliente
             .from('vendedores')
             .select('id, nome, email, unidade_id')
-            .eq('email', email)
+            .eq('user_id', user.id)
             .single();
 
         if (!vendedor) {
@@ -303,7 +305,7 @@ async function boot() {
         const { data: vendedor } = await cliente
             .from('vendedores')
             .select('id, nome, email, unidade_id')
-            .eq('email', user.email)
+            .eq('user_id', user.id)
             .single();
 
         if (!vendedor) { mostrarLogin('Vendedor não encontrado.'); return; }
