@@ -77,7 +77,7 @@ window.Unidades = (() => {
           <div class="grade">
             ${campo({ id: 'vd-nome', rotulo: 'Nome', valor: v.nome, attrs: 'maxlength="80"', largo: true })}
             ${campo({ id: 'vd-email', rotulo: 'E-mail (login no tablet)', tipo: 'email', valor: v.email, attrs: 'maxlength="120" autocomplete="off"', largo: true })}
-            ${vendedor ? '' : '<div id="vd-info" class="dica" style="margin:12px 0;padding:10px;background:#EFF6FF;border-radius:8px">Após criar, você precisará criar o login no <strong>Supabase Dashboard</strong> (Authentication › Users › Add user) com o mesmo e-mail.</div>'}
+            ${vendedor ? '' : '<div class="dica" style="margin:12px 0;padding:10px;background:#EFF6FF;border-radius:8px">O login é criado automaticamente. Você vai receber uma senha temporária para passar ao vendedor.</div>'}
           </div>
         </form>`,
         rodape: `<button type="button" class="btn btn-neutro" id="vd-cancelar">Cancelar</button>
@@ -97,11 +97,17 @@ window.Unidades = (() => {
         if (!ok) return;
         const btn = $('vd-salvar'); btn.disabled = true;
         try {
-          if (vendedor) await API.atualizarVendedor(vendedor.id, { nome, email });
-          else await API.criarVendedor(unidadeId, nome, email);
-          UI.aviso(`Vendedor "${nome}" ${vendedor ? 'atualizado' : 'criado'}.`, 'ok');
-          m.fechar();
-          resolve(true);
+          if (vendedor) {
+            await API.atualizarVendedor(vendedor.id, { nome, email });
+            UI.aviso(`Vendedor "${nome}" atualizado.`, 'ok');
+            m.fechar();
+            resolve(true);
+          } else {
+            const res = await API.criarVendedor(unidadeId, nome, email);
+            m.fechar();
+            mostrarSenhaTemporaria(nome, email, res.senha_temporaria);
+            resolve(true);
+          }
         } catch (e) {
           $('vd-erro').textContent = (e.code === '23505' || /duplicate|unique/i.test(e.message || ''))
             ? 'Já existe um vendedor com este e-mail.' : 'Não foi possível salvar: ' + UI.erroDe(e);
@@ -110,6 +116,30 @@ window.Unidades = (() => {
         }
       };
     });
+  }
+
+  // Mostra a senha temporária gerada pra copiar/repassar ao vendedor.
+  function mostrarSenhaTemporaria(nome, email, senha) {
+    const m = UI.abrirModal({
+      titulo: `Vendedor "${nome}" criado`,
+      corpo: `
+        <div style="padding:4px 0">
+          <p class="dica">Repasse estas credenciais ao vendedor. A senha não será exibida novamente.</p>
+          <div class="grade" style="margin-top:12px">
+            <div><span class="rotulo">E-mail</span><div class="nome" style="margin-top:4px">${esc(email)}</div></div>
+            <div><span class="rotulo">Senha temporária</span><div class="nome" style="margin-top:4px;font-family:monospace;font-size:16px" id="vd-senha-valor">${esc(senha)}</div></div>
+          </div>
+        </div>`,
+      rodape: `<button type="button" class="btn btn-neutro" id="vd-copiar">Copiar senha</button>
+               <button type="button" class="btn btn-primario" id="vd-ok">Entendi</button>`,
+      largura: '420px',
+    });
+    $('vd-copiar').onclick = async () => {
+      try { await navigator.clipboard.writeText(senha); UI.aviso('Senha copiada.', 'ok'); }
+      catch (e) { UI.aviso('Não foi possível copiar automaticamente.', 'erro'); }
+    };
+    $('vd-ok').onclick = () => m.fechar();
+    $('modal-fechar').onclick = () => m.fechar();
   }
 
   /* ---------------------- lista de unidades de uma loja ---------------------- */

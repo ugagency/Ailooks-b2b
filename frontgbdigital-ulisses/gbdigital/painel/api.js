@@ -99,8 +99,23 @@ window.API = (() => {
     if (unidadeId) q = q.eq('unidade_id', unidadeId);
     return dados(q);
   }
-  const criarVendedor = (unidadeId, nome, email) =>
-    rpc('criar_vendedor', { p_unidade: unidadeId, p_nome: nome, p_email: email });
+  // Cria o vendedor E o usuário no Supabase Auth numa só chamada (Edge Function,
+  // única peça com a service_role key). Retorna { ok, vendedor_id, senha_temporaria }.
+  async function criarVendedor(unidadeId, nome, email) {
+    const { data: { session } } = await cliente.auth.getSession();
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/criar-vendedor-auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ unidade_id: unidadeId, nome, email }),
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) throw new Error(json.detalhe || json.erro || 'Falha ao criar vendedor.');
+    return json;
+  }
   const atualizarVendedor = (id, campos) => dados(de('vendedores').update(campos).eq('id', id));
   const excluirVendedor = id => dados(de('vendedores').delete().eq('id', id));
 
