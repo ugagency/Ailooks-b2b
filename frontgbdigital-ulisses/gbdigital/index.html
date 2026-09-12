@@ -4,943 +4,174 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
-  <title>Provador virtual</title>
-  <style>
-    /* Branding dinâmico (Provva): totem.js sobrescreve estas variáveis com as cores da loja
-       ANTES de revelar o app. Os valores aqui são o padrão neutro (loja sem branding). */
-    :root {
-      --cor-primaria: #1A1A1A;
-      --cor-primaria-rgb: 26 26 26;
-      --cor-primaria-contraste: #FFFFFF;
-      --cor-secundaria: #8E8E93;
-      --cor-secundaria-rgb: 142 142 147;
-      --cor-secundaria-contraste: #FFFFFF;
-    }
-    /* Tudo que depende de conta B2C fica oculto (Salvar boneco, Salvar no guarda-roupa, abas de conta) */
-    .auth-only { display: none !important; }
-  </style>
+  <title>Provva</title>
 
-  <!-- Google Fonts: Playfair (Editorial) & DM Sans (Moderno) -->
+  <!--
+    Porta de entrada única. Um só formulário e-mail+senha: tenta primeiro o login
+    de vendedor (RPC, tablet.html) e, se o e-mail não existir como vendedor, tenta
+    Supabase Auth (loja/operador/plataforma, painel.html). Ver PROVVA.md.
+  -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Playfair+Display:wght@600;700&display=swap"
     rel="stylesheet">
-
-  <!-- Tailwind CDN (v3 fixado: as cores via rgb(var(--x) / <alpha-value>) dependem do JIT v3) -->
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-
-  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Configuração do Design System -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['DM Sans', 'sans-serif'],
-            serif: ['Playfair Display', 'serif'],
-          },
-          colors: {
-            // Cores da loja: vêm das variáveis CSS setadas por totem.js (branding dinâmico).
-            // O formato rgb(var() / <alpha-value>) mantém os modificadores de opacidade (bg-primary/40).
-            primary: 'rgb(var(--cor-primaria-rgb) / <alpha-value>)',
-            secondary: 'rgb(var(--cor-secundaria-rgb) / <alpha-value>)',
-            onprimary: 'var(--cor-primaria-contraste)',     // texto legível sobre primary
-            onsecondary: 'var(--cor-secundaria-contraste)', // texto legível sobre secondary
-            bg: '#F9F9F7',            // Off-White (Papel de Revista)
-            surface: '#FFFFFF',       // Branco Puro
-            muted: '#8E8E93',         // Cinza Médio
-            border: '#E5E5E5'         // Cinza Claro
-          },
-          boxShadow: {
-            'card': '0 10px 40px -10px rgba(0,0,0,0.05)',
-            'float': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          },
-          borderRadius: {
-            'xl': '16px',
-            '2xl': '24px'
-          }
-        }
-      }
+  <style>
+    :root {
+      --primary: #1A1A1A;
+      --secondary: #C78D75;
+      --bg: #F9F9F7;
+      --surface: #FFFFFF;
+      --muted: #8E8E93;
+      --border: #E5E5E5;
+      --erro: #DC2626;
     }
-  </script>
-
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .cartao {
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, .12);
+      width: 100%;
+      max-width: 380px;
+      overflow: hidden;
+    }
+    .topo { background: var(--primary); color: #fff; padding: 30px 26px; text-align: center; }
+    .topo h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0 0 6px; }
+    .topo p { margin: 0; font-size: 12px; color: #C9C9C9; }
+    form { padding: 26px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .campo { display: flex; flex-direction: column; gap: 6px; }
+    .rotulo {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+      font-weight: 700; color: var(--muted);
+    }
+    input[type=email], input[type=password] {
+      font-family: inherit; font-size: 14px; color: var(--primary);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 11px 12px; width: 100%;
+    }
+    input:focus { outline: 2px solid rgba(199, 141, 117, .45); outline-offset: 1px; }
+    button {
+      font-family: inherit; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; cursor: pointer; border: 0; border-radius: 10px;
+      padding: 13px 18px; background: var(--primary); color: #fff; transition: background .15s, opacity .15s;
+    }
+    button:hover { background: var(--secondary); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .aviso-erro {
+      background: #FEF2F2; border: 1px solid #FECACA; color: var(--erro);
+      border-radius: 10px; padding: 10px 12px; font-size: 12px;
+    }
+    .dica { font-size: 11px; color: var(--muted); text-align: center; margin: 0; }
+    [hidden] { display: none !important; }
+  </style>
 </head>
 
-<body class="bg-bg text-primary font-sans min-h-screen antialiased selection:bg-secondary selection:text-white">
-
-  <!-- Tela neutra de carregamento: visível até a sessão do vendedor ser validada e o branding aplicado.
-       Usa cinzas literais de propósito: nunca mostra cor de loja antes da hora. -->
-  <div id="telaCarregando" class="fixed inset-0 z-[300] bg-[#F9F9F7] flex flex-col items-center justify-center gap-4">
-    <span class="inline-block w-10 h-10 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"></span>
-    <p class="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold">Carregando</p>
-  </div>
-
-  <!-- Login do vendedor (overlay herdado do B2C; totem.js esconde fechar/criar conta/esqueci a senha) -->
-  <div id="authOverlay"
-    class="fixed inset-0 bg-primary/40 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
-    <div class="bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in relative">
-      <!-- Close Button -->
-      <button id="closeAuthBtn" class="absolute top-4 right-4 text-muted hover:text-primary z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <div class="bg-primary p-6 text-onprimary text-center">
-        <h2 class="font-serif text-3xl font-bold mb-2">Entrar</h2>
-        <p class="text-gray-300 text-sm">Acesso do vendedor ao provador virtual.</p>
-      </div>
-
-      <div class="p-8">
-        <form id="authForm" class="space-y-4">
-          <div id="authError" class="hidden bg-red-50 text-red-600 text-xs p-3 rounded-lg border border-red-100"></div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">E-mail</label>
-            <input type="email" id="authEmail" required
-              class="w-full bg-bg border-0 rounded-xl p-4 text-primary placeholder-gray-400 focus:ring-2 focus:ring-secondary/50"
-              placeholder="seu@email.com">
-          </div>
-
-          <div class="relative">
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-muted">Senha</label>
-              <button type="button" id="forgotPasswordBtn"
-                class="text-[10px] text-secondary hover:underline font-bold uppercase tracking-wider">Esqueceu a
-                senha?</button>
-            </div>
-            <div class="relative">
-              <input type="password" id="authPassword" required
-                class="w-full bg-bg border-0 rounded-xl p-4 pr-12 text-primary placeholder-gray-400 focus:ring-2 focus:ring-secondary/50"
-                placeholder="••••••••">
-              <button type="button" id="togglePasswordBtn"
-                class="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-secondary p-1">
-                <svg id="eyeIconOpen" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <svg id="eyeIconClosed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" id="authSubmitBtn"
-            class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium transition-all hover:opacity-90 shadow-lg">
-            Entrar
-          </button>
-
-          <div class="text-center pt-4 space-y-2 border-t border-gray-100 mt-4">
-            <button type="button" id="toggleAuthMode"
-              class="text-xs text-secondary font-medium hover:underline block w-full">
-              Não tem uma conta? Criar conta
-            </button>
-            <button type="button" id="skipAuthBtn"
-              class="hidden text-xs text-muted hover:text-primary transition-colors block w-full">
-              Acessar sem conta (Limite: 3 gerações)
-            </button>
-          </div>
-        </form>
-
-        <div id="authSuccess" class="hidden text-center space-y-4 animate-fade-in">
-          <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-primary">Conta criada com sucesso!</h3>
-          <p class="text-sm text-muted">Você já pode acessar o sistema.</p>
-          <button id="authSuccessBtn" class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium">
-            Entrar Agora
-          </button>
-        </div>
-      </div>
+<body>
+  <div class="cartao">
+    <div class="topo">
+      <h1>Provva</h1>
+      <p>Provador virtual para lojas</p>
     </div>
+    <form id="form-login">
+      <div id="login-erro" class="aviso-erro" hidden></div>
+      <div class="campo">
+        <label class="rotulo" for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="campo">
+        <label class="rotulo" for="login-senha">Senha</label>
+        <input type="password" id="login-senha" autocomplete="current-password" required>
+      </div>
+      <button type="submit" id="btn-entrar">Entrar</button>
+      <p class="dica">Vendedor, loja ou operador: o mesmo login leva para a tela certa.</p>
+    </form>
   </div>
 
-  <!-- Limit Reached Modal -->
-  <div id="limitModal"
-    class="fixed inset-0 bg-primary/40 backdrop-blur-md z-[110] hidden items-center justify-center p-4">
-    <div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in text-center p-8">
-      <div class="w-16 h-16 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      </div>
-      <h3 class="font-serif text-2xl font-bold mb-3">Estilo Ilimitado</h3>
-      <p class="text-muted text-sm mb-6">Você atingiu o limite de 3 gerações gratuitas. Crie uma conta para continuar
-        transformando seu estilo ilimitadamente!</p>
-      <button onclick="window.location.reload()"
-        class="w-full bg-primary text-onprimary py-4 rounded-xl font-medium transition-all hover:bg-black shadow-lg">
-        Criar Conta Agora
-      </button>
-      <button onclick="document.getElementById('limitModal').classList.add('hidden')"
-        class="mt-4 text-xs text-muted hover:text-primary transition-colors">
-        Depois
-      </button>
-    </div>
-  </div>
-
-  <!-- Digital Closet Full View (Management) -->
-  <div id="wardrobeFullView" class="fixed inset-0 bg-white z-[150] hidden flex-col animate-fade-in overflow-hidden">
-    <!-- Header Closet -->
-    <header class="p-6 border-b flex items-center justify-between bg-white sticky top-0 z-10">
-      <div>
-        <h2 class="font-serif text-2xl font-bold text-primary">Meu Closet Digital</h2>
-        <p class="text-[10px] text-muted uppercase tracking-[0.2em] mt-1">Gerencie suas peças salvas</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="addClosetItemBtn"
-          class="bg-primary text-onprimary px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Adicionar Peça
-        </button>
-        <input type="file" id="input-closet-add" accept="image/*" class="hidden" />
-        <button onclick="document.getElementById('wardrobeFullView').classList.add('hidden')"
-          class="bg-gray-100 p-2 rounded-full hover:bg-black hover:text-white transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Content Closet -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-10 bg-bg">
-      <div id="full-wardrobe-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-7xl mx-auto">
-        <!-- Dinâmico -->
-        <div class="animate-pulse bg-gray-200 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-200 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-200 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-200 rounded-2xl aspect-[3/4]"></div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Avatar Management Full View -->
-  <div id="avatarFullView" class="fixed inset-0 bg-white z-[150] hidden flex-col animate-fade-in overflow-hidden">
-    <!-- Header -->
-    <header class="p-6 border-b flex items-center justify-between bg-white sticky top-0 z-10">
-      <div>
-        <h2 class="font-serif text-2xl font-bold text-primary">Minhas imagens</h2>
-        <p class="text-[10px] text-muted uppercase tracking-[0.2em] mt-1">Gerencie seus avatares personalizados</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="addAvatarBtn"
-          class="bg-primary text-onprimary px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-secondary transition-all flex items-center gap-2 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Adicionar Boneco
-        </button>
-        <input type="file" id="input-avatar-add" accept="image/*" class="hidden" />
-        <button onclick="document.getElementById('avatarFullView').classList.add('hidden')"
-          class="bg-gray-100 p-2 rounded-full hover:bg-black hover:text-white transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Content -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-10 bg-bg">
-      <div id="full-avatar-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-7xl mx-auto">
-        <!-- Dinâmico -->
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-[3/4]"></div>
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-[3/4]"></div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Generation History Full View -->
-  <div id="historyFullView" class="fixed inset-0 bg-white z-[150] hidden flex-col animate-fade-in overflow-hidden">
-    <!-- Header -->
-    <header class="p-6 border-b flex items-center justify-between bg-white sticky top-0 z-10">
-      <div>
-        <h2 class="font-serif text-2xl font-bold text-primary">Meu Histórico</h2>
-        <p class="text-[10px] text-muted uppercase tracking-[0.2em] mt-1">Todas as suas criações salvas</p>
-      </div>
-      <button onclick="document.getElementById('historyFullView').classList.add('hidden')"
-        class="bg-gray-100 p-2 rounded-full hover:bg-black hover:text-white transition-all">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </header>
-
-    <!-- Content -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-10 bg-bg">
-      <div id="full-history-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        <!-- Dinâmico -->
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-square"></div>
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-square"></div>
-        <div class="animate-pulse bg-gray-100 rounded-2xl aspect-square"></div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Notification Modal (Styled Alert) -->
-  <div id="notificationModal"
-    class="fixed inset-0 bg-primary/40 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
-    <div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in text-center p-8">
-      <div id="notificationIcon"
-        class="w-12 h-12 bg-gray-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <h3 id="notificationTitle" class="font-serif text-xl font-bold mb-2 text-primary">Aviso</h3>
-      <p id="notificationMessage" class="text-muted text-sm mb-6 leading-relaxed">Mensagem do sistema.</p>
-      <button onclick="document.getElementById('notificationModal').classList.add('hidden')"
-        class="w-full bg-primary text-onprimary py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-black shadow-lg">
-        Entendi
-      </button>
-    </div>
-  </div>
-
-  <!-- Confirmation Modal (Styled Confirm) -->
-  <div id="confirmModal"
-    class="fixed inset-0 bg-primary/40 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
-    <div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in text-center p-8">
-      <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </div>
-      <h3 id="confirmTitle" class="font-serif text-xl font-bold mb-2 text-primary">Tem certeza?</h3>
-      <p id="confirmMessage" class="text-muted text-sm mb-6 leading-relaxed">Esta ação não pode ser desfeita e removerá
-        o item permanentemente.</p>
-      <div class="flex gap-3">
-        <button id="confirmCancelBtn"
-          class="flex-1 bg-gray-100 text-primary py-3 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all">
-          Cancelar
-        </button>
-        <button id="confirmSuccessBtn"
-          class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 shadow-md transition-all">
-          Excluir
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- hidden até totem.js validar a sessão e aplicar o branding -->
-  <div id="appContent" class="hidden">
-
-    <div class="max-w-4xl mx-auto px-4 py-8 md:py-12">
-
-      <header class="mb-10 text-center relative z-10">
-        <div class="flex items-center justify-between gap-3 mb-5 text-left">
-          <span id="unidadeNome"
-            class="inline-block bg-primary text-onprimary text-[10px] uppercase tracking-[0.2em] px-3 py-1 rounded-full truncate max-w-[55%]">&nbsp;</span>
-          <div class="flex items-center gap-2 shrink-0">
-            <span id="creditosPill" title=""
-              class="text-[10px] uppercase tracking-widest font-bold text-muted bg-white border border-gray-200 rounded-full px-3 py-1">Gerações do mês: —</span>
-            <button id="btnSair" type="button"
-              class="text-[10px] uppercase tracking-widest font-bold text-muted hover:text-primary px-2 py-1">Sair</button>
-          </div>
-        </div>
-        <!-- Logo da loja (branding). Sem logo, o nome de exibição aparece no h1. -->
-        <img id="lojaLogo" alt="" class="hidden max-h-20 mx-auto mb-3 object-contain">
-        <h1 id="lojaNome" class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-3 tracking-tight text-primary">AI Looks</h1>
-        <p class="text-muted text-lg font-light max-w-md mx-auto">Experimente as peças da loja em você. <br>Tire uma
-          foto, escolha uma peça, veja o look completo.</p>
-      </header>
-
-      <main class="space-y-8">
-
-        <!-- Grid Principal (Inputs + Chat) -->
-        <div class="grid md:grid-cols-12 gap-6">
-
-          <!-- COLUNA DA ESQUERDA: Ferramentas (Input) — Totem: coluna única, chat oculto -->
-          <div class="md:col-span-12 space-y-6">
-
-            <!-- Card Principal: Foto Base -->
-            <section
-              class="bg-surface rounded-2xl shadow-card p-1 relative overflow-hidden group hover:shadow-float transition-all duration-300">
-              <div class="p-5">
-                <div class="flex justify-between items-center mb-4">
-                  <h2 class="font-serif text-xl font-bold flex items-center gap-2">
-                    <span
-                      class="w-6 h-6 bg-primary text-onprimary rounded-full flex items-center justify-center text-xs">1</span>
-                    Sua foto
-                  </h2>
-                  <span class="text-xs text-secondary font-medium uppercase tracking-wider">Obrigatório</span>
-                </div>
-
-                <!-- Tabs para Avatar — Totem: sempre visíveis; "Minhas imagens" (precisa de login) fica oculta -->
-                <div class="flex border-b border-gray-100 mb-4">
-                  <button id="tab-avatar-upload"
-                    class="flex-1 pb-2 text-[8px] md:text-xs font-bold uppercase tracking-wider text-primary border-b-2 border-primary">Tirar
-                    foto</button>
-                  <button id="tab-avatar-saved" style="display:none"
-                    class="flex-1 pb-2 text-[8px] md:text-xs font-bold uppercase tracking-wider text-muted border-b-2 border-transparent">Minhas
-                    imagens</button>
-                  <button id="tab-avatar-manequin"
-                    class="flex-1 pb-2 text-[8px] md:text-xs font-bold uppercase tracking-wider text-muted border-b-2 border-transparent">Manequim
-                    Pronto</button>
-                </div>
-
-                <!-- Area de Upload Estilizada -->
-                <div id="section-avatar-upload">
-                  <div id="dropzone-main"
-                    class="relative border border-dashed border-gray-300 bg-bg rounded-xl h-64 flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-gray-50 hover:border-secondary group-hover:border-secondary/50">
-
-                    <div class="scan-line" id="scan-main"></div> <!-- Efeito Laser -->
-
-                    <img id="preview-main" src=""
-                      class="absolute inset-0 w-full h-full object-cover rounded-xl hidden z-10" />
-
-                    <div id="upload-placeholder-main" class="text-center p-6 z-0 transition-opacity">
-                      <div
-                        class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-secondary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                          stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <p class="text-primary font-medium">Toque para adicionar foto</p>
-                      <p class="text-sm text-muted mt-1">Corpo inteiro funciona melhor</p>
-                    </div>
-
-                    <!-- capture="user": em tablet/celular abre a câmera direto; em desktop é ignorado -->
-                    <input id="input-main" name="image_base" type="file" accept="image/*" capture="user"
-                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
-
-                    <!-- Botão Remover Flutuante -->
-                    <button id="remove-main"
-                      class="absolute top-2 right-2 z-30 bg-white/90 backdrop-blur text-red-500 p-2 rounded-full shadow hover:bg-red-50 hidden">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clip-rule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                  <!-- Botão Salvar Avatar -->
-                  <button id="saveAvatarBtn"
-                    class="hidden w-full mt-3 py-2 text-xs font-bold uppercase tracking-widest text-secondary border border-secondary/30 rounded-lg hover:bg-secondary/5 transition-colors auth-only">
-                    Salvar como Meu Boneco/Avatar
-                  </button>
-                </div>
-
-                <!-- Area de Bonecos Salvos (Hidden by default) -->
-                <div id="section-avatar-saved" class="hidden">
-                  <div id="avatar-gallery" class="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto p-1">
-                    <!-- Dinâmico -->
-                    <div class="animate-pulse bg-gray-100 rounded-lg aspect-[3/4]"></div>
-                    <div class="animate-pulse bg-gray-100 rounded-lg aspect-[3/4]"></div>
-                    <div class="animate-pulse bg-gray-100 rounded-lg aspect-[3/4]"></div>
-                  </div>
-                </div>
-
-                <!-- Area de Manequins Prontos (Hidden by default) -->
-                <div id="section-avatar-manequin" class="hidden">
-                  <!-- Filtro de Gênero -->
-                  <div class="flex gap-2 mb-4">
-                    <button id="btn-manequin-male" onclick="filterManequin('male')"
-                      class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-primary text-onprimary rounded-lg transition-all">Masculino</button>
-                    <button id="btn-manequin-female" onclick="filterManequin('female')"
-                      class="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-gray-100 text-muted rounded-lg hover:bg-gray-200 transition-all">Feminino</button>
-                  </div>
-
-                  <!-- Grid Masculino -->
-                  <div id="grid-manequin-male" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1">
-                    <div onclick="setManequin('male_athletic')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_male_athletic" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Atlético</p>
-                    </div>
-                    <div onclick="setManequin('male_average')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_male_average" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Médio</p>
-                    </div>
-                    <div onclick="setManequin('male_robust')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_male_robust" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Robusto</p>
-                    </div>
-                  </div>
-
-                  <!-- Grid Feminino (Hidden) -->
-                  <div id="grid-manequin-female" class="hidden grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1">
-                    <div onclick="setManequin('female_athletic')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_female_athletic" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Atlética</p>
-                    </div>
-                    <div onclick="setManequin('female_average')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_female_average" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Média</p>
-                    </div>
-                    <div onclick="setManequin('female_robust')" class="group cursor-pointer">
-                      <div
-                        class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-50 border-2 border-transparent group-hover:border-secondary transition-all mb-1 relative">
-                        <img id="img_female_robust" src="" class="w-full h-full object-cover">
-                      </div>
-                      <p class="text-center font-bold text-[8px] uppercase tracking-widest text-primary">Robusta</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Configurações (Acordeão Visual) -->
-            <section class="bg-surface rounded-2xl shadow-card p-6">
-              <div class="mb-5">
-                <h2 class="font-serif text-xl font-bold flex items-center gap-2 mb-4">
-                  <span
-                    class="w-6 h-6 bg-primary text-onprimary rounded-full flex items-center justify-center text-xs">2</span>
-                  Escolha a peça
-                </h2>
-
-                <!-- Modos removidos conforme solicitação -->
-                <input type="hidden" name="mode" value="generate" checked />
-
-                <!-- Tabs para Referência -->
-                <div class="flex border-b border-gray-100 mb-4 auth-only hidden">
-                  <button id="tab-wardrobe-upload"
-                    class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-primary border-b-2 border-primary">Upload
-                    Novo</button>
-                  <button id="tab-wardrobe-saved"
-                    class="flex-1 pb-2 text-xs font-bold uppercase tracking-wider text-muted border-b-2 border-transparent">Meu
-                    Guarda-Roupa</button>
-                </div>
-
-                <!-- Inputs Dinâmicos -->
-                <div class="space-y-4">
-                  <!-- Prompt -->
-                  <!-- Totem: seletor único de ocasião (substitui as 4 rodas; ver OCASIOES em script.js) -->
-                  <div id="ocasiao-selector">
-                    <p class="text-[10px] uppercase tracking-[0.2em] text-muted font-bold mb-2">Para qual ocasião?</p>
-                    <div class="grid grid-cols-4 gap-2">
-                      <button type="button" data-ocasiao="Casual" onclick="setOcasiao('Casual')"
-                        class="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-bg text-muted">Casual</button>
-                      <button type="button" data-ocasiao="Trabalho" onclick="setOcasiao('Trabalho')"
-                        class="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-bg text-muted">Trabalho</button>
-                      <button type="button" data-ocasiao="Encontro" onclick="setOcasiao('Encontro')"
-                        class="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-bg text-muted">Encontro</button>
-                      <button type="button" data-ocasiao="Evento" onclick="setOcasiao('Evento')"
-                        class="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-bg text-muted">Evento</button>
-                    </div>
-                  </div>
-
-                  <!-- Resumo dos Seletores (Clica para abrir Rolete) — OCULTO no Totem, mantido para o B2C -->
-                  <div id="ai-selectors-summary" onclick="openWheelPicker()"
-                    class="hidden bg-bg border-2 border-transparent hover:border-secondary/30 rounded-xl p-4 cursor-pointer transition-all items-center justify-between group w-full overflow-hidden">
-                    <div class="flex-1 flex gap-4 overflow-x-auto no-scrollbar scroll-smooth min-w-0">
-                      <div class="text-center min-w-[50px]">
-                        <p class="text-[8px] uppercase text-muted font-bold tracking-widest mb-1">Momento</p>
-                        <p id="summary-momento" class="text-xs font-bold text-primary">Dia</p>
-                      </div>
-                      <div class="w-[1px] h-8 bg-gray-200"></div>
-                      <div class="text-center min-w-[50px]">
-                        <p class="text-[8px] uppercase text-muted font-bold tracking-widest mb-1">Clima</p>
-                        <p id="summary-clima" class="text-xs font-bold text-primary">Calor</p>
-                      </div>
-                      <div class="w-[1px] h-8 bg-gray-200"></div>
-                      <div class="text-center min-w-[50px]">
-                        <p class="text-[8px] uppercase text-muted font-bold tracking-widest mb-1">Formalidade</p>
-                        <p id="summary-formalidade" class="text-xs font-bold text-primary">1</p>
-                      </div>
-                      <div class="w-[1px] h-8 bg-gray-200"></div>
-                      <div class="text-center min-w-[60px]">
-                        <p class="text-[8px] uppercase text-muted font-bold tracking-widest mb-1">Estilo</p>
-                        <p id="summary-estilo" class="text-xs font-bold text-primary">Old Money</p>
-                      </div>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 text-muted group-hover:text-secondary transition-colors" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-
-                  <!-- Modal Rolete iOS (Hidden) -->
-                  <div id="wheelPickerModal" class="fixed inset-0 z-[10000] hidden flex items-end justify-center">
-                    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeWheelPicker()"></div>
-                    <div class="relative w-full max-w-2xl bg-white rounded-t-3xl shadow-2xl p-6 animate-slide-up">
-                      <div class="flex items-center justify-between mb-6">
-                        <button onclick="closeWheelPicker()"
-                          class="text-xs font-bold text-muted uppercase tracking-widest">Cancelar</button>
-                        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-primary">Configurar Look</h3>
-                        <button onclick="confirmWheelSelection()"
-                          class="text-xs font-bold text-secondary uppercase tracking-widest">OK</button>
-                      </div>
-
-                      <div class="flex gap-1 h-48 relative overflow-hidden">
-                        <!-- Máscaras de Gradiente -->
-                        <div
-                          class="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none">
-                        </div>
-                        <div
-                          class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none">
-                        </div>
-                        <!-- Linha de Seleção Focada -->
-                        <div
-                          class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-10 border-y border-gray-100 bg-gray-50/50 pointer-events-none">
-                        </div>
-
-
-
-                        <!-- Rolete Momento -->
-                        <div
-                          class="flex-1 flex flex-col items-center overflow-y-auto no-scrollbar snap-y snap-mandatory bg-gray-50/20"
-                          id="wheel-momento">
-                          <div class="h-[72px] shrink-0"></div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 transition-all wheel-item"
-                            data-val="Dia">Dia</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 transition-all wheel-item"
-                            data-val="Tarde">Tarde</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 transition-all wheel-item"
-                            data-val="Noite">Noite</div>
-                          <div class="h-[72px] shrink-0"></div>
-                        </div>
-
-                        <!-- Rolete Clima -->
-                        <div
-                          class="flex-1 flex flex-col items-center overflow-y-auto no-scrollbar snap-y snap-mandatory"
-                          id="wheel-clima">
-                          <div class="h-[72px] shrink-0"></div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Calor">Calor</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Frio">Frio</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Ameno">Ameno</div>
-                          <div class="h-[72px] shrink-0"></div>
-                        </div>
-
-                        <!-- Rolete Formalidade -->
-                        <div
-                          class="flex-1 flex flex-col items-center overflow-y-auto no-scrollbar snap-y snap-mandatory bg-gray-50/20"
-                          id="wheel-formalidade">
-                          <div class="h-[72px] shrink-0"></div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="1">1</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="2">2</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="3">3</div>
-                          <div class="h-[72px] shrink-0"></div>
-                        </div>
-
-                        <!-- Rolete Estilo -->
-                        <div
-                          class="flex-1 flex flex-col items-center overflow-y-auto no-scrollbar snap-y snap-mandatory"
-                          id="wheel-estilo">
-                          <div class="h-[72px] shrink-0"></div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Old Money">Old Money</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Atemporal">Atemporal</div>
-                          <div
-                            class="snap-center h-12 flex items-center justify-center text-[10px] text-primary font-bold shrink-0 wheel-item"
-                            data-val="Athleisure">Athleisure</div>
-                          <div class="h-[72px] shrink-0"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <textarea id="prompt" class="hidden"></textarea>
-
-                  <!-- Upload Referência (Mini) -->
-                  <div id="section-wardrobe-upload">
-                    <div
-                      class="bg-bg rounded-xl p-3 flex items-center gap-3 border border-transparent hover:border-gray-200 transition-colors">
-                      <div
-                        class="w-12 h-12 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border">
-                        <img id="preview-ref" src="" class="w-full h-full object-cover hidden" />
-                        <svg id="icon-ref" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
-                          viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate" id="file-ref-name">Toque numa peça do catálogo abaixo
-                        </p>
-                        <!-- Totem: upload de peça pelo consumidor desativado; só seleção do catálogo -->
-                        <label class="hidden text-xs text-secondary cursor-pointer hover:underline">
-                          Escolher imagem
-                          <input id="input-ref" name="image_reference" type="file" accept="image/*" class="hidden" />
-                        </label>
-                        <button id="remove-ref"
-                          class="text-xs text-red-500 ml-2 hover:underline hidden">Remover</button>
-                      </div>
-                    </div>
-                    <!-- Botão Salvar no Guarda-Roupa -->
-                    <button id="saveWardrobeBtn"
-                      class="hidden w-full mt-3 py-2 text-xs font-bold uppercase tracking-widest text-secondary border border-secondary/30 rounded-lg hover:bg-secondary/5 transition-colors auth-only">
-                      Salvar no meu Guarda-Roupa
-                    </button>
-                  </div>
-
-                  <!-- Totem: contador + faixa de peças escolhidas (até 5; tetos por categoria em CATALOGO_LIMITES) -->
-                  <div id="totem-pecas-summary" class="bg-bg rounded-xl p-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <p class="text-[10px] uppercase tracking-[0.2em] text-muted font-bold">Peças escolhidas</p>
-                      <span id="pecas-counter" class="text-[10px] font-bold text-secondary">0 de 5 peças</span>
-                    </div>
-                    <div id="pecas-selecionadas" class="flex flex-wrap gap-2">
-                      <p class="text-[10px] text-muted italic">Nenhuma peça selecionada ainda.</p>
-                    </div>
-                  </div>
-
-                  <!-- Totem: CATÁLOGO DA LOJA (agrupado por categoria, preenchido por loadCatalogo em script.js) -->
-                  <div id="catalogo-grid" class="max-h-[420px] overflow-y-auto p-1"></div>
-
-                  <!-- Area de Guarda-Roupa Salvo (Hidden by default) -->
-                  <div id="section-wardrobe-saved" class="hidden">
-                    <div id="wardrobe-gallery" class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
-                      <!-- Dinâmico -->
-                      <div class="animate-pulse bg-gray-100 rounded-lg aspect-square"></div>
-                      <div class="animate-pulse bg-gray-100 rounded-lg aspect-square"></div>
-                      <div class="animate-pulse bg-gray-100 rounded-lg aspect-square"></div>
-                      <div class="animate-pulse bg-gray-100 rounded-lg aspect-square"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button id="generateBtn"
-                class="w-full group relative overflow-hidden rounded-xl bg-primary text-onprimary py-4 font-medium transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                <div
-                  class="absolute inset-0 w-0 bg-secondary transition-all duration-[250ms] ease-out group-hover:w-full">
-                </div>
-                <span class="relative flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                      d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 9a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.707.293l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L12.586 5H10a1 1 0 110-2h5zM8 11a1 1 0 011-1h5a1 1 0 110 2H9a1 1 0 01-1-1z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Gerar Look com IA
-                </span>
-              </button>
-
-              <div id="anonymousCounter" class="hidden mt-3 text-center">
-                <p class="text-[10px] uppercase tracking-widest text-muted font-bold">
-                  Gerações restantes: <span id="remainingCount" class="text-secondary">3</span>/3
-                </p>
-              </div>
-
-              <div class="mt-2 text-center">
-                <button id="resetBtn" class="text-xs text-muted hover:text-primary underline">Limpar tudo e
-                  recomeçar</button>
-              </div>
-            </section>
-
-          </div>
-
-          <!-- COLUNA DA DIREITA: Chat — OCULTO no Demo Totem (sem concierge). Remover "hidden" para voltar. -->
-          <div class="hidden md:col-span-6 flex-col md:h-0 md:min-h-full">
-
-            <!-- Chat Minimalista -->
-            <section
-              class="bg-surface rounded-2xl shadow-card flex flex-col h-full min-h-[500px] relative overflow-hidden">
-              <div class="bg-primary p-4 text-white flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 class="font-serif font-bold text-sm">Consultora AI</h3>
-                    <p class="text-[10px] text-gray-300 flex items-center gap-1">
-                      <span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50 no-scrollbar">
-                <!-- Mensagem de Boas vindas -->
-                <div class="flex justify-start">
-                  <div
-                    class="bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-tl-none py-3 px-4 text-sm shadow-sm max-w-[85%]">
-                    <p class="font-serif font-bold text-gray-900 mb-1">Olá! ✨</p>
-                    <p>Sou sua stylist pessoal. Posso analisar suas fotos ou dar dicas de moda. O que vamos ver hoje?
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Input do Chat -->
-              <div class="p-3 bg-white border-t border-gray-100">
-                <!-- Preview de Imagem no Chat -->
-                <div id="chat-image-preview-container"
-                  class="hidden relative w-full mb-2 bg-gray-50 rounded-lg p-2 border border-dashed border-gray-300 flex items-center gap-3">
-                  <img id="chat-image-preview" src="" class="w-10 h-10 rounded object-cover border">
-                  <span class="text-xs text-gray-500 truncate flex-1">Imagem anexada</span>
-                  <button id="remove-chat-image" class="text-gray-400 hover:text-red-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clip-rule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <label
-                    class="cursor-pointer text-gray-400 hover:text-secondary transition p-2 bg-gray-50 rounded-full">
-                    <input type="file" id="chat-file-input" accept="image/*" class="hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </label>
-                  <input type="text" id="chat-input" placeholder="Pergunte sobre estilo..."
-                    class="flex-1 bg-gray-100 text-sm rounded-full px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary placeholder-gray-400 text-primary">
-                  <button id="send-chat-btn"
-                    class="bg-primary text-onprimary p-3 rounded-full hover:bg-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform rotate-90" viewBox="0 0 20 20"
-                      fill="currentColor">
-                      <path
-                        d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </section>
-
-          </div>
-        </div>
-
-        <!-- Área de Resultado (Agora embaixo de tudo) -->
-        <section id="resultSection" class="hidden bg-surface rounded-2xl shadow-card p-6 border border-secondary/20">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-serif font-bold text-2xl">Seu Novo Look</h3>
-            <span
-              class="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide">Gerado
-              com Sucesso</span>
-          </div>
-          <!-- Result Grid: as imagens geradas aparecem lado a lado -->
-          <div id="resultGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <!-- Cards inseridos dinamicamente aqui -->
-          </div>
-
-          <!-- Totem: justificativa da IA por look (o chat está oculto) -->
-          <div id="resultJustificativa" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
-
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button id="regenerateBtn"
-              class="inline-flex items-center justify-center px-8 py-3 bg-white border border-gray-200 text-primary rounded-xl font-medium hover:bg-gray-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Gerar Novamente
-            </button>
-          </div>
-        </section>
-
-      </main>
-
-      <footer class="mt-12 text-center text-[10px] text-gray-400 font-medium uppercase tracking-widest">
-        <span id="rodapeNome">AI Looks</span> &copy; 2026 • Provador virtual Provva
-      </footer>
-    </div>
-
-    <!-- Loading Overlay Editorial -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm hidden items-center justify-center z-50">
-      <div class="flex flex-col items-center gap-4">
-        <span class="fashion-loader"></span>
-        <div class="text-center">
-          <h3 class="font-serif text-xl font-bold text-primary">Criando seu Look</h3>
-          <p class="text-sm text-muted mt-1 animate-pulse">Analisando proporções e cores...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lightbox: visualização ampliada de uma imagem gerada -->
-    <div id="imageLightbox" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-[100]">
-      <button id="lightboxClose" class="absolute top-4 right-4 text-white p-2 rounded-full hover:bg-white/10 z-10" aria-label="Fechar">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <button id="lightboxPrev" class="absolute left-4 top-1/2 -translate-y-1/2 text-white p-2 rounded-full bg-white/10 hover:bg-white/20 z-10">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <button id="lightboxNext" class="absolute right-4 top-1/2 -translate-y-1/2 text-white p-2 rounded-full bg-white/10 hover:bg-white/20 z-10">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-      <div class="flex flex-col items-center gap-4 max-w-[92vw] max-h-[90vh]">
-        <img id="lightboxImage" src="" class="max-w-[92vw] max-h-[75vh] object-contain rounded-xl shadow-2xl" />
-        <a id="lightboxDownload" download
-          class="inline-flex items-center justify-center px-6 py-2.5 bg-white text-primary rounded-xl font-medium hover:bg-gray-100 transition-all shadow-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-              clip-rule="evenodd" />
-          </svg>
-          Baixar Imagem
-        </a>
-      </div>
-    </div>
-
-  </div> <!-- Fim do #appContent -->
-
-  <!-- Provva: totem.js faz o bootstrap (sessão do vendedor, branding, créditos). auth.js é o legado B2C. -->
-  <script src="totem.js" defer></script>
-  <script src="script.js" defer></script>
-  <!-- Innovative Floating Navbar -->
-  <nav id="main-nav"
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] transition-all duration-500 transform translate-y-20"></nav>
-
+  <script>
+    const SUPABASE_URL = 'https://agzknkebggfytlqcsuuu.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnemtua2ViZ2dmeXRscWNzdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDMzODUsImV4cCI6MjA4NjM3OTM4NX0.c2pFotvELY6ZopuQSMlzqUwluKc0HenIAvWuZVclQz0';
+    const CHAVE_TOKEN = 'provva_token';
+
+    const cliente = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const $ = id => document.getElementById(id);
+
+    const MENSAGENS_VENDEDOR = {
+      bloqueado: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.',
+      inativo: 'Acesso desativado. Fale com o gestor da loja.',
+      unidade_inativa: 'Esta unidade está inativa. Fale com o gestor da loja.',
+    };
+
+    function mostrarErro(msg) {
+      const erro = $('login-erro');
+      erro.textContent = msg;
+      erro.hidden = false;
+    }
+
+    // Mensagem vinda de um redirect (ex.: sessão expirada no tablet).
+    const erroInicial = new URLSearchParams(location.search).get('erro');
+    if (erroInicial) mostrarErro(erroInicial);
+
+    async function entrar(ev) {
+      ev.preventDefault();
+      const btn = $('btn-entrar');
+      $('login-erro').hidden = true;
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+
+      const email = $('login-email').value.trim();
+      const senha = $('login-senha').value;
+
+      try {
+        // 1) Tenta como vendedor (login do tablet).
+        const { data: resVendedor, error: erroVendedor } = await cliente.rpc('vendedor_login', {
+          p_email: email, p_senha: senha,
+        });
+        if (erroVendedor) throw erroVendedor;
+
+        if (resVendedor && resVendedor.ok) {
+          localStorage.setItem(CHAVE_TOKEN, resVendedor.token);
+          location.href = 'tablet.html';
+          return;
+        }
+        if (resVendedor && resVendedor.erro && resVendedor.erro !== 'credenciais') {
+          mostrarErro(MENSAGENS_VENDEDOR[resVendedor.erro] || 'Não foi possível entrar.');
+          return;
+        }
+
+        // 2) Não é vendedor (ou senha errada) — tenta loja/operador/plataforma (Supabase Auth).
+        const { error: erroAuth } = await cliente.auth.signInWithPassword({ email, password: senha });
+        if (erroAuth) {
+          mostrarErro('E-mail ou senha incorretos.');
+          return;
+        }
+        location.href = 'painel.html';
+      } catch (e) {
+        console.error('login:', e);
+        mostrarErro('Sem conexão com o servidor. Tente novamente.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }
+
+    $('form-login').addEventListener('submit', entrar);
+  </script>
 </body>
 
 </html>

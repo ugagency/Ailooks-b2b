@@ -153,7 +153,8 @@ window.Lojas = (() => {
     };
   }
 
-  Rotas.registrar('/lojas', telaLista, { titulo: 'Lojas' });
+  // Lista é só de quem administra mais de uma loja; papel 'loja' vai direto pro detalhe (nav própria).
+  Rotas.registrar('/lojas', telaLista, { papeis: ['plataforma', 'operador'], titulo: 'Lojas' });
   Rotas.registrar('/lojas/:id', telaDetalhe, { titulo: 'Loja' });
 
   return { formulario, operadoresDisponiveis };

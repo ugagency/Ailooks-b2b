@@ -25,7 +25,7 @@
     function novoFrame() {
       const f = document.createElement('iframe');
       f.style.cssText = 'width:1000px;height:1400px;border:0;display:block';
-      f.src = 'index.html?teste=1';
+      f.src = 'tablet.html?teste=1';
       document.getElementById('frames').appendChild(f);
       return new Promise(r => f.onload = () => r({ w: f.contentWindow, d: f.contentDocument, f }));
     }

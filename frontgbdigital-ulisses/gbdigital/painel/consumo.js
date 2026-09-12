@@ -34,7 +34,9 @@ window.Consumo = (() => {
       </div>` : ''}
 
       <div class="quadro">
-        <div class="topo-quadro"><h2>Unidades</h2><a class="btn-mini" href="#/lojas">Ver lojas</a></div>
+        <div class="topo-quadro"><h2>Unidades</h2>${API.perfil?.papel === 'loja'
+          ? `<a class="btn-mini" href="#/lojas/${API.perfil.loja_id}">Minha loja</a>`
+          : '<a class="btn-mini" href="#/lojas">Ver lojas</a>'}</div>
         <div class="rolagem"><table>
           <thead><tr><th>Loja</th><th>Unidade</th><th>Plano</th><th>Totens</th><th>Uso no mês</th><th>Status</th><th></th></tr></thead>
           <tbody id="cs-corpo"></tbody>

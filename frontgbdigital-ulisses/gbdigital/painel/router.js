@@ -56,13 +56,15 @@ window.Rotas = (() => {
     if (location.hash === hash) render(); else location.hash = hash;
   }
 
-  // Links de navegação por papel.
+  // Links de navegação por papel. Papel 'loja' vai direto para a própria loja
+  // (só tem uma; a lista de lojas nem existe pra ela — ver /lojas com papeis restritos).
   function montarNav(perfil) {
     const nav = document.getElementById('nav-links');
     if (!nav) return;
     const links = [{ hash: '#/', rotulo: 'Consumo' }];
     if (perfil.papel === 'plataforma') links.push({ hash: '#/operadores', rotulo: 'Operadores' });
-    links.push({ hash: '#/lojas', rotulo: 'Lojas' });
+    if (perfil.papel === 'loja') links.push({ hash: `#/lojas/${perfil.loja_id}`, rotulo: 'Minha loja' });
+    else links.push({ hash: '#/lojas', rotulo: 'Lojas' });
     if (perfil.papel === 'plataforma') links.push({ hash: '#/usuarios', rotulo: 'Usuários' });
     nav.innerHTML = links.map(l => `<a href="${l.hash}" data-hash="${l.hash}">${UI.esc(l.rotulo)}</a>`).join('');
     marcarAtivo(analisar(location.hash).caminho);

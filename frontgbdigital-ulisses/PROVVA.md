@@ -5,8 +5,23 @@ seleção múltipla de peças, painel de catálogo single-tenant, deploy no Verc
 a estrutura multi-tenant: operadores, lojas, unidades, vendedores, créditos e o painel de gestão reescrito.
 
 Continua sendo código de demonstração: sem consentimento/LGPD, sem handoff de tablet, sem estoque por
-unidade, sem faturamento automático, sem self-service de onboarding pelo lojista. Papel `loja` no painel
-existe na coluna do banco mas não tem policy nem tela — fica para uma etapa seguinte.
+unidade, sem faturamento automático, sem self-service de onboarding pelo lojista.
+
+## Entrada única
+
+`index.html` é a porta de entrada (não é mais o tablet — isso virou `tablet.html`). Um só formulário
+e-mail+senha: tenta primeiro `vendedor_login` (RPC); se o e-mail não existir como vendedor, tenta
+Supabase Auth. De acordo com quem logou, redireciona:
+
+- **Vendedor** → `tablet.html` (token em `localStorage`, mesma tela de geração de sempre).
+- **Loja / operador / plataforma** → `painel.html`, que resolve o papel (`meu_perfil()`) e manda a
+  navegação certa: papel `loja` vai direto para a própria loja (`#/lojas/:id`, uma aba "Minha loja" na
+  nav); `operador` e `plataforma` veem a lista de lojas.
+
+Papel `loja` agora tem policy (antes só existia a coluna, sem RLS nem tela — ver
+`supabase/07_papel_loja.sql`): reaproveita a mesma tela de detalhe de loja que operador/plataforma já
+usavam (dados, branding, catálogo, unidades), só que `loja_visivel()` também libera a própria loja, e as
+rotas `#/lojas` (lista) e `#/nova-loja` (wizard) ficam restritas a `plataforma`/`operador`.
 
 ## Como rodar
 
@@ -14,8 +29,9 @@ existe na coluna do banco mas não tem policy nem tela — fica para uma etapa s
 cd gbdigital
 python -m http.server 8123
 ```
-- Tablet (vendedor): `http://localhost:8123/index.html`
-- Painel (gestão): `http://localhost:8123/painel.html`
+- Entrada (login único): `http://localhost:8123/index.html`
+- Tablet (vendedor, após login): `http://localhost:8123/tablet.html`
+- Painel (gestão, após login): `http://localhost:8123/painel.html`
 
 ## Ordem de execução no Supabase
 
@@ -30,6 +46,8 @@ Rodar no SQL Editor do projeto AILOOKS, nesta ordem (todos idempotentes, podem r
    `consumo_unidade_mes`, `frota_operador`, `vendedores_painel`; bucket `branding`.
 4. `supabase/04_funcoes_provva.sql` — RPCs de login de vendedor, créditos e painel. Termina com dois
    blocos de bootstrap **comentados**: descomentar e rodar uma vez, com seus próprios valores.
+5. `supabase/07_papel_loja.sql` — `loja_atual()` e `loja_visivel()` passam a reconhecer o papel `loja`
+   (antes só existia a coluna). Só depois deste arquivo um usuário vinculado como `loja` vê algo no painel.
 
 ### Bootstrap (obrigatório para o primeiro acesso)
 
@@ -191,10 +209,14 @@ Todos excluídos do deploy via `.vercelignore` (`_test_*.html`, `_test_duble.js`
 
 ## O que ainda falta (manual, no Supabase)
 
-1. Rodar `03` e `04` nesta ordem, no projeto AILOOKS (o MCP do Supabase não alcança esse projeto — ver
-   memória da sessão; é sempre SQL manual).
+1. Rodar `03`, `04` e `07` nesta ordem, no projeto AILOOKS (o MCP do Supabase não alcança esse projeto —
+   ver memória da sessão; é sempre SQL manual).
 2. Bootstrap: criar o primeiro usuário no Authentication → Users, depois rodar o bloco 6a comentado no
-   fim do `04` com o e-mail certo.
+   fim do `04` com o e-mail certo (ou `vincular_usuario_painel` pelo próprio painel, se já houver um
+   usuário `plataforma`).
 3. Testar ponta a ponta com o Gemini real: login de vendedor → branding aplicado → geração → linha nova
    em `geracoes` → pill de créditos atualizada.
 4. Subir fotos reais no bucket `catalogo` (os SVGs do Demo Totem continuam sendo só placeholder).
+5. **Vercel**: confirmar que o "Root Directory" do projeto apontado no dashboard é
+   `frontgbdigital-ulisses/gbdigital` — sem isso `painel.html`/`tablet.html` não ficam acessíveis mesmo
+   estando no repositório, e só a rota `/` (agora o login) aparece.

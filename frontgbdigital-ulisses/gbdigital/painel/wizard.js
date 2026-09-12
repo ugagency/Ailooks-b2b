@@ -170,6 +170,6 @@ window.Wizard = (() => {
     await fn(container, loja);
   }
 
-  Rotas.registrar('/nova-loja', tela, { titulo: 'Cadastro guiado' });
+  Rotas.registrar('/nova-loja', tela, { papeis: ['plataforma', 'operador'], titulo: 'Cadastro guiado' });
   return { PASSOS };
 })();

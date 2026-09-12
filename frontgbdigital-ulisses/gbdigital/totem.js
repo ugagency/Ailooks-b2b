@@ -31,6 +31,8 @@ window.getAuthState = async () => ({ isAnonymous: true, session: null });
 window.openAuthModal = () => { };
 window.logout = () => sairTotem();
 
+const MODO_TESTE = new URLSearchParams(location.search).has('teste');
+
 let cliente = null;
 let primeiraSessao = true;
 const avisosDados = new Set(); // dedupe dos avisos de 80% / 100% por mês
@@ -174,7 +176,10 @@ function mostrarCarregando(on) {
     if (t) t.classList.toggle('hidden', !on);
 }
 
+// Login agora é só na porta de entrada (index.html): sem token válido, volta pra lá.
+// _test_tablet.html continua testando o formulário embutido (#authOverlay) direto no dublê.
 function mostrarLogin(mensagem) {
+    if (!MODO_TESTE) { location.href = 'index.html' + (mensagem ? ('?erro=' + encodeURIComponent(mensagem)) : ''); return; }
     mostrarCarregando(false);
     const ov = $('authOverlay');
     if (ov) { ov.classList.remove('hidden'); ov.classList.add('flex'); }
@@ -285,7 +290,7 @@ async function boot() {
 }
 
 // Modo de teste (_test_tablet.html): o dublê do cliente entra por aqui e o boot é manual.
-if (new URLSearchParams(location.search).has('teste')) {
+if (MODO_TESTE) {
     window.__totemTeste = {
         iniciarCom(dubles) { cliente = dubles; window.supabaseClient = dubles; return boot(); },
         aplicarBranding, atualizarCreditos, corContraste, hexParaRgb,
