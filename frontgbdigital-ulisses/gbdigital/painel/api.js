@@ -69,7 +69,13 @@ window.API = (() => {
   const obterLoja = id => dados(de('lojas').select('*').eq('id', id).maybeSingle());
   async function salvarLoja(campos, id) {
     if (id) return dados(de('lojas').update(campos).eq('id', id).select().single());
-    return dados(de('lojas').insert([campos]).select().single());
+    // Inserção nova usa RPC (que tem permissão com security definer)
+    return rpc('criar_loja', {
+      p_nome: campos.nome,
+      p_operador_id: campos.operador_id,
+      p_observacao: campos.observacao || null,
+      p_wizard_etapa: campos.wizard_etapa || 1
+    });
   }
   const excluirLoja = id => dados(de('lojas').delete().eq('id', id));
 
