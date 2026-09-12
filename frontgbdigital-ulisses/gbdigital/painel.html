@@ -524,6 +524,15 @@
         try {
           await API.entrar($('login-email').value.trim(), $('login-senha').value);
           $('login-senha').value = '';
+
+          // Login neste formulário é só para plataforma/operador/loja. Se quem
+          // acabou de entrar for vendedor (papel não reconhecido aqui), manda
+          // pro tablet em vez de cair na tela "sem acesso" — evita ficar preso
+          // na rota/URL antiga do painel ao trocar de conta na mesma aba.
+          const { data: { user } } = await API.cliente.auth.getUser();
+          const { data: vendedor } = await API.cliente
+            .from('vendedores').select('id').eq('user_id', user.id).maybeSingle();
+          if (vendedor) { location.href = 'tablet.html'; return; }
         } catch (e) {
           $('login-erro').textContent = /invalid login/i.test(e.message || '') ? 'E-mail ou senha incorretos.' : (e.message || 'Não foi possível entrar.');
           $('login-erro').hidden = false;
@@ -550,9 +559,13 @@
         Rotas.render();
       });
 
+      // Sempre volta pro gateway único (index.html) em vez de ficar nesta
+      // página: assim o próximo login (de qualquer papel, inclusive vendedor)
+      // passa pelo roteamento correto em vez de cair de novo neste formulário.
+      const sair = async () => { await API.sair(); location.href = 'index.html'; };
       $('form-login').addEventListener('submit', entrar);
-      $('btn-sair').onclick = () => API.sair();
-      $('btn-sair-sem-acesso').onclick = () => API.sair();
+      $('btn-sair').onclick = sair;
+      $('btn-sair-sem-acesso').onclick = sair;
       Rotas.ligar();
 
       // Modo de teste (_test_painel.html): o dublê do cliente entra por aqui.
