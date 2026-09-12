@@ -914,6 +914,16 @@ async function sendGenerate() {
         }
         fd.append('nr_imagem', String(pecas.length));
         fd.append('pecas_nomes', pecas.map(p => p.nome).join('|'));
+        // Dados completos das peças (do catalogo_loja no Supabase), na mesma ordem
+        // das image_reference*. Peça avulsa do B2C legado (fileRef) não tem esses
+        // campos, então sai apenas com nome/imagem_url.
+        fd.append('pecas_json', JSON.stringify(pecas.map(p => ({
+            sku: p.sku || null,
+            nome: p.nome,
+            categoria: p.categoria || null,
+            preco_centavos: p.preco_centavos ?? null,
+            imagem_url: p.imagem_url,
+        }))));
         fd.append('prompt', finalPrompt);
         fd.append('mode', 'generate');
 
