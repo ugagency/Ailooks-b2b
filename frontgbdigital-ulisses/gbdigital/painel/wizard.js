@@ -43,7 +43,9 @@ window.Wizard = (() => {
       <div id="wz-erro" class="aviso-erro" hidden style="margin-bottom:14px"></div>
       <div class="grade">
         ${campo({ id: 'wz-nome', rotulo: 'Nome da loja (marca)', valor: l.nome, attrs: 'maxlength="80" placeholder="MA Ville"', largo: true })}
-        ${campo({ id: 'wz-operador', rotulo: 'Operador', valor: l.operador_id, opcoes: operadores, attrs: API.ehPlataforma() ? '' : 'disabled', dica: operadores.length ? '' : 'Cadastre um operador antes.' })}
+        ${API.ehPlataforma()
+          ? campo({ id: 'wz-operador', rotulo: 'Operador', valor: l.operador_id, opcoes: operadores, dica: operadores.length ? '' : 'Cadastre um operador antes.' })
+          : `<input type="hidden" id="wz-operador" value="${l.operador_id}"><div style="padding:6px 0"><span class="rotulo">Operador</span><div style="margin-top:4px">${operadores.find(o => o.valor === l.operador_id)?.rotulo || '—'}</div></div>`}
         <div></div>
         ${campo({ id: 'wz-observacao', rotulo: 'Segmento / observação (livre)', tipo: 'textarea', valor: l.observacao || '', attrs: 'maxlength="500" placeholder="Contexto para quem for configurar o catálogo depois"', largo: true })}
       </div>

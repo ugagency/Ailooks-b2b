@@ -20,7 +20,9 @@ window.Lojas = (() => {
           <div id="lj-erro" class="aviso-erro" hidden style="margin-bottom:14px"></div>
           <div class="grade">
             ${campo({ id: 'lj-nome', rotulo: 'Nome da loja (marca)', valor: l.nome, attrs: 'maxlength="80" placeholder="MA Ville"', largo: true })}
-            ${campo({ id: 'lj-operador', rotulo: 'Operador', valor: l.operador_id, opcoes: operadores, attrs: API.ehPlataforma() ? '' : 'disabled' })}
+            ${API.ehPlataforma()
+              ? campo({ id: 'lj-operador', rotulo: 'Operador', valor: l.operador_id, opcoes: operadores })
+              : `<input type="hidden" id="lj-operador" value="${l.operador_id}"><div style="padding:6px 0"><span class="rotulo">Operador</span><div style="margin-top:4px">${operadores.find(o => o.valor === l.operador_id)?.rotulo || '—'}</div></div>`}
             ${loja ? campo({ id: 'lj-status', rotulo: 'Status', valor: l.status, opcoes: STATUS }) : '<div></div>'}
             ${campo({ id: 'lj-observacao', rotulo: 'Segmento / observação (livre)', tipo: 'textarea', valor: l.observacao || '', attrs: 'maxlength="500" placeholder="Contexto para quem for montar o catálogo"', largo: true })}
           </div>
@@ -62,10 +64,7 @@ window.Lojas = (() => {
     container.innerHTML = `
       <div class="cabecalho">
         <div><h1>Lojas</h1><p class="dica sub">Marca ou rede: catálogo e branding são da loja; totens e vendedores são das unidades.</p></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="btn btn-neutro" id="lj-nova-rapida">+ Nova loja</button>
-          <a class="btn btn-primario" href="#/nova-loja">Cadastro guiado</a>
-        </div>
+        <a class="btn btn-primario" href="#/nova-loja">+ Nova loja</a>
       </div>
       <div class="quadro">
         <div class="rolagem"><table>
@@ -93,8 +92,6 @@ window.Lojas = (() => {
       tr.onclick = ev => { if (!ev.target.closest('a,button')) Rotas.navegar(`#/lojas/${l.id}`); };
       corpo.appendChild(tr);
     });
-
-    $('lj-nova-rapida').onclick = async () => { const l = await formulario(null); if (l) Rotas.navegar(`#/lojas/${l.id}`); };
   }
 
   /* ---------------------- detalhe com abas ---------------------- */
