@@ -96,9 +96,12 @@ Deno.serve(async (req: Request) => {
       p_vendedor_id: vendedorId, p_user_id: authData.user!.id,
     });
     if (erroVinculo) {
-      await clienteAdmin.auth.admin.deleteUser(authData.user!.id);
-      await clienteUsuario.from('vendedores').delete().eq('id', vendedorId);
-      return new Response(JSON.stringify({ ok: false, erro: 'vincular_auth', detalhe: erroVinculo.message }), {
+      const { error: erroRollbackAuth } = await clienteAdmin.auth.admin.deleteUser(authData.user!.id);
+      const { error: erroRollbackVendedor } = await clienteUsuario.from('vendedores').delete().eq('id', vendedorId);
+      return new Response(JSON.stringify({
+        ok: false, erro: 'vincular_auth', detalhe: erroVinculo.message,
+        rollback_auth_falhou: !!erroRollbackAuth, rollback_vendedor_falhou: !!erroRollbackVendedor,
+      }), {
         status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }
