@@ -100,6 +100,7 @@ window.Lojas = (() => {
     { id: 'branding', rotulo: 'Branding' },
     { id: 'catalogo', rotulo: 'Catálogo' },
     { id: 'unidades', rotulo: 'Unidades' },
+    { id: 'gerentes', rotulo: 'Gerentes' },
   ];
 
   async function telaDetalhe({ params, query, container }) {
@@ -124,6 +125,51 @@ window.Lojas = (() => {
     else if (aba === 'branding') Branding.render(alvo, loja);
     else if (aba === 'catalogo') await Catalogo.render(alvo, loja.id);
     else if (aba === 'unidades') await Unidades.render(alvo, loja);
+    else if (aba === 'gerentes') abaGerentes(alvo, loja);
+  }
+
+  function abaGerentes(alvo, loja) {
+    alvo.innerHTML = `
+      <div class="quadro">
+        <div class="topo-quadro"><h2>Gerentes da loja</h2><button type="button" class="btn btn-primario" id="gr-novo">+ Novo gerente</button></div>
+        <div class="rolagem"><table><thead><tr><th>E-mail</th><th>Status</th><th></th></tr></thead><tbody id="gr-corpo"></tbody></table></div>
+        <div class="vazio" id="gr-vazio" hidden></div>
+      </div>`;
+
+    async function carregarGerentes() {
+      const lista = await API.listarGerentes(loja.id);
+      const corpo = $('gr-corpo');
+      corpo.innerHTML = '';
+      $('gr-vazio').hidden = lista.length > 0;
+      $('gr-vazio').textContent = 'Nenhum gerente. Gerentes podem acessar o painel desta loja.';
+      lista.forEach(g => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${esc(g.user_email)}</td>
+          <td>${UI.badgeStatus(g.status || 'ativo')}</td>
+          <td><div class="acoes"><button type="button" class="btn-mini gr-deletar" style="color:var(--erro)">Deletar</button></div></td>`;
+        tr.querySelector('.gr-deletar').onclick = async () => {
+          if (!await UI.confirmar(`Remover acesso de "${g.user_email}" da loja?`, { titulo: 'Remover gerente', ok: 'Remover' })) return;
+          try { await API.removerGerente(loja.id, g.user_id); UI.aviso('Gerente removido.', 'ok'); await carregarGerentes(); }
+          catch (e) { UI.aviso(UI.erroDe(e), 'erro'); }
+        };
+        corpo.appendChild(tr);
+      });
+    }
+
+    $('gr-novo').onclick = async () => {
+      const email = prompt('E-mail do novo gerente (deve estar cadastrado no Supabase Auth):');
+      if (!email) return;
+      try {
+        await API.adicionarGerente(loja.id, email.trim().toLowerCase());
+        UI.aviso(`Gerente "${email}" adicionado.`, 'ok');
+        await carregarGerentes();
+      } catch (e) {
+        UI.aviso(UI.erroDe(e), 'erro');
+      }
+    };
+
+    carregarGerentes();
   }
 
   function abaDados(alvo, loja, operador) {

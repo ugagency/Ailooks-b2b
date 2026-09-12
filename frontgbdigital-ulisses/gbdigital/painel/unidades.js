@@ -200,13 +200,18 @@ window.Unidades = (() => {
           <td class="nome">${esc(v.nome)}</td>
           <td>${esc(v.email)}</td>
           <td><label class="chave"><input type="checkbox" class="vd-ativo" ${v.status === 'ativo' ? 'checked' : ''} aria-label="Ativar ou desativar ${esc(v.nome)}"><span class="trilho"></span><span class="texto">${v.status === 'ativo' ? 'Ativo' : 'Inativo'}</span></label></td>
-          <td><div class="acoes"><button type="button" class="btn-mini vd-editar">Editar</button></div></td>`;
+          <td><div class="acoes"><button type="button" class="btn-mini vd-editar">Editar</button><button type="button" class="btn-mini vd-deletar" style="color:var(--erro)">Deletar</button></div></td>`;
         tr.querySelector('.vd-ativo').onchange = async ev => {
           const novo = ev.target.checked ? 'ativo' : 'inativo';
           try { await API.atualizarVendedor(v.id, { status: novo }); UI.aviso(`"${v.nome}" ${novo === 'ativo' ? 'ativado' : 'desativado'}.`, 'ok'); await carregarVendedores(); }
           catch (e) { ev.target.checked = !ev.target.checked; UI.aviso(UI.erroDe(e), 'erro'); }
         };
         tr.querySelector('.vd-editar').onclick = async () => { if (await formularioVendedor(unidade.id, v)) await carregarVendedores(); };
+        tr.querySelector('.vd-deletar').onclick = async () => {
+          if (!await UI.confirmar(`Deletar o vendedor "${v.nome}"? Esta ação não pode ser desfeita.`, { titulo: 'Deletar vendedor', ok: 'Deletar' })) return;
+          try { await API.excluirVendedor(v.id); UI.aviso(`Vendedor "${v.nome}" deletado.`, 'ok'); await carregarVendedores(); }
+          catch (e) { UI.aviso(UI.erroDe(e), 'erro'); }
+        };
         corpo.appendChild(tr);
       });
     }

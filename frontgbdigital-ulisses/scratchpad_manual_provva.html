@@ -1,0 +1,784 @@
+<title>Provva por Dentro</title>
+<style>
+  /* ============================================================
+     TOKENS
+     Paleta: papel frio com leve viés esverdeado (não creme/terracota),
+     tinta quase-preta azulada, acento verde-azulado (teal) profundo.
+     Os quatro tons de "camada" (tier) vão do claro (Operador, o mais
+     amplo) ao mais saturado (Vendedor, o mais específico) — a escala
+     de cor acompanha o zoom da hierarquia, não é decoração.
+  ============================================================ */
+  :root {
+    --bg: #F3F5F0;
+    --surface: #FFFFFF;
+    --surface-alt: #EAEDE6;
+    --ink: #1C232B;
+    --muted: #5B6470;
+    --border: #DCE1D9;
+    --accent: #2E6F6B;
+    --accent-strong: #1B4744;
+    --accent-tint: #E1EFEC;
+    --ok: #2F7D4F;
+    --ok-tint: #E7F4EC;
+    --warn: #9A6B12;
+    --warn-tint: #FBF1DC;
+    --danger: #A83B32;
+    --danger-tint: #FBEAE7;
+    --tier-1: #D6EBE8;
+    --tier-2: #A9D6D0;
+    --tier-3: #5FA69F;
+    --tier-4: #1B4744;
+    --tier-1-ink: #163634;
+    --tier-2-ink: #163634;
+    --tier-3-ink: #F3F5F0;
+    --tier-4-ink: #F3F5F0;
+    --shadow: 0 1px 2px rgba(28, 35, 43, 0.06);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12181A;
+      --surface: #171F21;
+      --surface-alt: #1D2628;
+      --ink: #E9EDEC;
+      --muted: #93A19E;
+      --border: #2A3436;
+      --accent: #5FBDB6;
+      --accent-strong: #86D3CC;
+      --accent-tint: #16302E;
+      --ok: #6FCB92;
+      --ok-tint: #16301F;
+      --warn: #DDA95B;
+      --warn-tint: #2C2415;
+      --danger: #E08D82;
+      --danger-tint: #2E1B18;
+      --tier-1: #17302E;
+      --tier-2: #204A45;
+      --tier-3: #3C877E;
+      --tier-4: #5FBDB6;
+      --tier-1-ink: #CDE7E2;
+      --tier-2-ink: #CDE7E2;
+      --tier-3-ink: #0E1B1A;
+      --tier-4-ink: #0E1B1A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #12181A;
+    --surface: #171F21;
+    --surface-alt: #1D2628;
+    --ink: #E9EDEC;
+    --muted: #93A19E;
+    --border: #2A3436;
+    --accent: #5FBDB6;
+    --accent-strong: #86D3CC;
+    --accent-tint: #16302E;
+    --ok: #6FCB92;
+    --ok-tint: #16301F;
+    --warn: #DDA95B;
+    --warn-tint: #2C2415;
+    --danger: #E08D82;
+    --danger-tint: #2E1B18;
+    --tier-1: #17302E;
+    --tier-2: #204A45;
+    --tier-3: #3C877E;
+    --tier-4: #5FBDB6;
+    --tier-1-ink: #CDE7E2;
+    --tier-2-ink: #CDE7E2;
+    --tier-3-ink: #0E1B1A;
+    --tier-4-ink: #0E1B1A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+
+  /* ============================================================
+     BASE
+  ============================================================ */
+  * { box-sizing: border-box; }
+
+  html { text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stage { animation: subir 0.5s ease-out both; }
+    .stage:nth-child(1) { animation-delay: 0.02s; }
+    .stage:nth-child(2) { animation-delay: 0.08s; }
+    .stage:nth-child(3) { animation-delay: 0.14s; }
+    .stage:nth-child(4) { animation-delay: 0.2s; }
+    @keyframes subir { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+
+  h1, h2, h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  a { color: var(--accent-strong); }
+  :is(a, button, input, select, summary):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+  }
+
+  .lede {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 62ch;
+  }
+
+  p { max-width: 68ch; }
+
+  /* ============================================================
+     LAYOUT
+  ============================================================ */
+  .pagina {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 48px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 40px 80px;
+  }
+
+  @media (max-width: 860px) {
+    .pagina { grid-template-columns: 1fr; gap: 0; padding-inline: 16px; }
+  }
+
+  nav.indice {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+
+  nav.indice a {
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+  }
+  nav.indice a:hover { color: var(--ink); background: var(--surface-alt); }
+  nav.indice a.ativo { color: var(--accent-strong); border-left-color: var(--accent); font-weight: 500; }
+
+  @media (max-width: 860px) {
+    nav.indice {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height: none;
+      background: var(--bg);
+      margin-inline: -16px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 4px;
+      white-space: nowrap;
+    }
+    nav.indice a { border-left: none; border-bottom: 2px solid transparent; flex-shrink: 0; }
+    nav.indice a.ativo { border-bottom-color: var(--accent); }
+  }
+
+  main { min-width: 0; }
+
+  header.topo {
+    padding-block: 8px 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  header.topo h1 { font-size: clamp(2rem, 4vw, 2.7rem); }
+
+  section {
+    padding-block: 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  section:last-of-type { border-bottom: none; }
+  section > .eyebrow { margin-bottom: -4px; }
+  section h2 { font-size: 1.6rem; }
+  section h3 { font-size: 1.1rem; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+
+  /* ============================================================
+     DIAGRAMA DE HIERARQUIA
+  ============================================================ */
+  .hierarquia {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 8px;
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    position: relative;
+    padding-bottom: 28px;
+  }
+  .stage:last-child { padding-bottom: 0; }
+
+  .stage .trilho {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .stage .marcador {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .stage:nth-child(1) .marcador { background: var(--tier-1); color: var(--tier-1-ink); }
+  .stage:nth-child(2) .marcador { background: var(--tier-2); color: var(--tier-2-ink); }
+  .stage:nth-child(3) .marcador { background: var(--tier-3); color: var(--tier-3-ink); }
+  .stage:nth-child(4) .marcador { background: var(--tier-4); color: var(--tier-4-ink); }
+  .stage .linha {
+    width: 2px;
+    flex: 1;
+    background: var(--border);
+    margin-top: 4px;
+  }
+  .stage:last-child .linha { display: none; }
+
+  .stage .cartao {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+  }
+  .stage .cartao h3 { font-family: "Fraunces", serif; font-size: 1.2rem; font-weight: 560; }
+  .stage .cartao .exemplo { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+  .stage .cartao .pertence {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+    border: 1px solid transparent;
+  }
+
+  /* ============================================================
+     COMPARATIVO PAINEL / TABLET
+  ============================================================ */
+  .comparativo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 4px;
+  }
+  @media (max-width: 640px) { .comparativo { grid-template-columns: 1fr; } }
+
+  .comparativo .coluna {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .comparativo .coluna h3 { font-size: 1.05rem; }
+  .comparativo .rotulo-login {
+    align-self: flex-start;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 5px;
+  }
+  .comparativo .coluna:nth-child(1) .rotulo-login { background: var(--accent-tint); color: var(--accent-strong); }
+  .comparativo .coluna:nth-child(2) .rotulo-login { background: var(--surface-alt); color: var(--muted); }
+  .comparativo ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.95rem; }
+  .comparativo li + li { margin-top: 5px; }
+  .comparativo li::marker { color: var(--accent); }
+
+  /* ============================================================
+     TABELA DE PLANOS
+  ============================================================ */
+  .rolagem-tabela { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 460px;
+    font-size: 0.92rem;
+  }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  td.num { font-family: "IBM Plex Mono", monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ============================================================
+     BARRA DE CRÉDITOS (exemplo)
+  ============================================================ */
+  .exemplo-creditos {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 420px;
+  }
+  .exemplo-creditos .linha-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.85rem;
+  }
+  .exemplo-creditos .linha-topo .nums { font-family: "IBM Plex Mono", monospace; color: var(--warn); }
+  .barra {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--surface-alt);
+    overflow: hidden;
+  }
+  .barra > span { display: block; height: 100%; border-radius: 999px; background: var(--warn); }
+  .exemplo-creditos .nota { font-size: 0.82rem; color: var(--muted); }
+
+  /* ============================================================
+     CALLOUTS
+  ============================================================ */
+  .aviso {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-tint);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .aviso strong { color: var(--accent-strong); }
+  .aviso.critico { border-left-color: var(--danger); background: var(--danger-tint); }
+  .aviso.critico strong { color: var(--danger); }
+  .aviso.ok { border-left-color: var(--ok); background: var(--ok-tint); }
+  .aviso.ok strong { color: var(--ok); }
+
+  /* ============================================================
+     WIZARD (passos numerados — sequência real)
+  ============================================================ */
+  ol.passos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: passo;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  ol.passos li {
+    counter-increment: passo;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+  }
+  ol.passos li::before {
+    content: counter(passo);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.passos .titulo { font-weight: 600; }
+  ol.passos .desc { color: var(--muted); font-size: 0.93rem; margin-top: 2px; }
+
+  /* ============================================================
+     PAPÉIS
+  ============================================================ */
+  .papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px) { .papeis { grid-template-columns: 1fr; } }
+  .papel {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    background: var(--surface);
+  }
+  .papel .selo {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: var(--surface-alt);
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .papel ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.93rem; }
+  .papel li + li { margin-top: 4px; }
+
+  /* ============================================================
+     GLOSSÁRIO
+  ============================================================ */
+  dl.glossario {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 10px 20px;
+    margin: 0;
+  }
+  dl.glossario dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-strong);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  dl.glossario dd {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.93rem;
+    max-width: 56ch;
+  }
+  @media (max-width: 560px) {
+    dl.glossario { grid-template-columns: 1fr; }
+    dl.glossario dd { margin-bottom: 6px; }
+  }
+
+  footer.rodape {
+    margin-top: 24px;
+    padding-top: 20px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,560;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<div class="pagina">
+  <nav class="indice" aria-label="Índice">
+    <a href="#visao-geral">Visão geral</a>
+    <a href="#hierarquia">A hierarquia</a>
+    <a href="#logins">Login e telas</a>
+    <a href="#creditos">Créditos e planos</a>
+    <a href="#branding">Branding dinâmico</a>
+    <a href="#wizard">Cadastro guiado</a>
+    <a href="#papeis">Papéis no painel</a>
+    <a href="#glossario">Glossário</a>
+  </nav>
+
+  <main>
+    <header class="topo">
+      <span class="eyebrow">Manual básico</span>
+      <h1>Provva por dentro</h1>
+      <p class="lede">Como o sistema organiza operadores, lojas, unidades e vendedores — e como isso
+        aparece nas duas telas do produto: o painel de gestão e o tablet do provador virtual.</p>
+    </header>
+
+    <section id="visao-geral">
+      <span class="eyebrow">Visão geral</span>
+      <h2>Quatro níveis, dois logins</h2>
+      <p>O Provva organiza tudo em quatro camadas — <strong>operador</strong>, <strong>loja</strong>,
+        <strong>unidade</strong> e <strong>vendedor</strong> — e cada camada é dona de uma parte
+        diferente do negócio. O catálogo e a identidade visual pertencem à loja, porque são iguais em
+        qualquer ponto físico dela. Os totens contratados e o crédito do mês pertencem à unidade, porque
+        é ali que o equipamento está e é por totem que se cobra.</p>
+      <p>Existem dois lugares onde isso aparece: o <strong>painel de gestão</strong>, onde quem administra
+        a operação cadastra tudo, e o <strong>tablet</strong>, onde o vendedor loga e o cliente final
+        experimenta looks. Cada um tem seu próprio login, e nenhum dos dois vê mais do que deveria.</p>
+    </section>
+
+    <section id="hierarquia">
+      <span class="eyebrow">A hierarquia</span>
+      <h2>De quem opera até quem vende</h2>
+      <p>A escala de cor abaixo acompanha o zoom: quanto mais específico o nível, mais forte a cor —
+        o operador é o mais amplo, o vendedor é o mais concreto.</p>
+
+      <div class="hierarquia">
+        <div class="stage">
+          <div class="trilho"><span class="marcador">1</span><span class="linha"></span></div>
+          <div class="cartao">
+            <h3>Operador</h3>
+            <p class="exemplo">A empresa que opera os painéis de LED e os tablets — ex.: uma empresa de
+              totens que atende várias marcas.</p>
+            <div class="pertence"><span class="chip">desconto de frota</span></div>
+          </div>
+        </div>
+        <div class="stage">
+          <div class="trilho"><span class="marcador">2</span><span class="linha"></span></div>
+          <div class="cartao">
+            <h3>Loja</h3>
+            <p class="exemplo">A marca ou rede — ex.: "MA Ville". Pode ter várias unidades (pontos
+              físicos) com quantidades diferentes de totens.</p>
+            <div class="pertence"><span class="chip">catálogo</span><span class="chip">branding</span></div>
+          </div>
+        </div>
+        <div class="stage">
+          <div class="trilho"><span class="marcador">3</span><span class="linha"></span></div>
+          <div class="cartao">
+            <h3>Unidade</h3>
+            <p class="exemplo">O ponto físico — ex.: "MA Ville Belvedere". Cada unidade tem seu próprio
+              contrato de totens e seu próprio plano.</p>
+            <div class="pertence"><span class="chip">totens contratados</span><span class="chip">plano</span><span class="chip">pool de créditos do mês</span></div>
+          </div>
+        </div>
+        <div class="stage">
+          <div class="trilho"><span class="marcador">4</span></div>
+          <div class="cartao">
+            <h3>Vendedor</h3>
+            <p class="exemplo">Quem trabalha numa unidade e loga no tablet para atender o cliente.</p>
+            <div class="pertence"><span class="chip">login no tablet</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="aviso">
+        <strong>Por que assim:</strong> catálogo e identidade visual são da marca — iguais em toda
+        unidade da loja. Crédito e vendedor são do ponto físico, porque é ali que o totem está e é por
+        totem que se cobra.
+      </div>
+    </section>
+
+    <section id="logins">
+      <span class="eyebrow">Login e telas</span>
+      <h2>Painel e tablet não se misturam</h2>
+      <p>São duas contas completamente separadas, com propósitos diferentes.</p>
+      <div class="comparativo">
+        <div class="coluna">
+          <span class="rotulo-login">painel.html</span>
+          <h3>Painel de gestão</h3>
+          <p style="margin:0;color:var(--muted);font-size:0.93rem">Quem administra a operação: cadastra
+            operadores, lojas, unidades e vendedores, sobe o catálogo, ajusta o branding e acompanha o
+            consumo.</p>
+          <ul>
+            <li>Login por e-mail e senha</li>
+            <li>Um usuário pode ver <em>tudo</em> (plataforma) ou só as próprias lojas (operador)</li>
+            <li>Sem limite de sessão fixo, como qualquer painel administrativo</li>
+          </ul>
+        </div>
+        <div class="coluna">
+          <span class="rotulo-login">index.html</span>
+          <h3>Tablet do provador</h3>
+          <p style="margin:0;color:var(--muted);font-size:0.93rem">Quem atende o cliente na loja física:
+            loga, escolhe peças do catálogo, tira a foto e gera o look.</p>
+          <ul>
+            <li>Login por e-mail e senha do vendedor</li>
+            <li>Sessão de 12 horas, renovada automaticamente enquanto o tablet fica em uso</li>
+            <li>Só enxerga o catálogo e o crédito da própria unidade</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="creditos">
+      <span class="eyebrow">Créditos e planos</span>
+      <h2>Um pool de gerações por unidade, por mês</h2>
+      <p>Cada totem contratado libera uma cota de gerações mensais, de acordo com o plano da unidade.
+        Unidades da mesma loja não compartilham crédito entre si — cada uma tem o seu.</p>
+
+      <div class="rolagem-tabela">
+        <table>
+          <thead><tr><th>Plano</th><th>Gerações por totem / mês</th><th>Exemplo com 2 totens</th></tr></thead>
+          <tbody>
+            <tr><td>Base</td><td class="num tabular">1.000</td><td class="num tabular">2.000 / mês</td></tr>
+            <tr><td>Plus</td><td class="num tabular">2.000</td><td class="num tabular">4.000 / mês</td></tr>
+            <tr><td>Max</td><td class="num tabular">3.500</td><td class="num tabular">7.000 / mês</td></tr>
+            <tr><td>Scale</td><td class="num tabular">5.000</td><td class="num tabular">10.000 / mês</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:4px">O vendedor vê o consumo no próprio tablet, como um contador simples:</p>
+      <div class="exemplo-creditos">
+        <div class="linha-topo">
+          <span>Gerações do mês</span>
+          <span class="nums tabular">1.600 / 2.000</span>
+        </div>
+        <div class="barra"><span style="width:80%"></span></div>
+        <span class="nota">A 80% do pool, um aviso aparece no tablet. Passar de 100% nunca bloqueia a
+          geração — só passa a contar como excedente.</span>
+      </div>
+
+      <div class="aviso ok">
+        <strong>Nunca trava:</strong> mesmo no excedente, o vendedor continua gerando looks normalmente.
+        O excedente só fica registrado para acompanhamento.
+      </div>
+
+      <p><strong>Desconto de frota</strong> — soma os totens de todas as unidades ativas de todas as
+        lojas de um operador:</p>
+      <div class="rolagem-tabela">
+        <table>
+          <thead><tr><th>Totens do operador</th><th>Desconto</th></tr></thead>
+          <tbody>
+            <tr><td class="num tabular">1–2</td><td>0%</td></tr>
+            <tr><td class="num tabular">3–4</td><td>5%</td></tr>
+            <tr><td class="num tabular">5–9</td><td>10%</td></tr>
+            <tr><td class="num tabular">10+</td><td>15%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="branding">
+      <span class="eyebrow">Branding dinâmico</span>
+      <h2>O tablet veste a cor da loja</h2>
+      <p>Assim que o vendedor loga, o tablet busca o branding da loja daquela unidade — logo, cor
+        primária, cor secundária e o nome de exibição — e aplica tudo antes de mostrar qualquer tela.
+        Enquanto isso resolve, o tablet mostra uma tela neutra de carregamento; ele nunca chega a exibir
+        a identidade de uma loja antes da hora, nem "pisca" a marca de outra loja num tablet reaproveitado.</p>
+      <p>Se a loja não tiver logo ou cores definidas, o tablet cai automaticamente num visual neutro —
+        nunca trava e nunca mostra erro por falta de branding.</p>
+    </section>
+
+    <section id="wizard">
+      <span class="eyebrow">Cadastro guiado</span>
+      <h2>Criar uma loja do zero, em 5 passos</h2>
+      <p>No painel, o "Cadastro guiado" reúne os passos que normalmente exigiriam abrir várias telas
+        separadas. Cada passo salva na hora — se você sair no meio, a loja continua onde parou e pode
+        ser retomada depois, sem recomeçar.</p>
+      <ol class="passos">
+        <li><span class="titulo">Dados da loja</span><span class="desc">Nome, operador vinculado e uma
+          observação livre — contexto para quem for montar o catálogo depois.</span></li>
+        <li><span class="titulo">Branding</span><span class="desc">Logo, cor primária e secundária, com
+          prévia ao vivo de como a tela do tablet vai ficar.</span></li>
+        <li><span class="titulo">Catálogo inicial</span><span class="desc">Importação por CSV, ou pular e
+          cadastrar peça por peça mais tarde.</span></li>
+        <li><span class="titulo">Unidades</span><span class="desc">Uma ou mais: nome, endereço, totens
+          contratados e plano — com o pool de créditos calculado na hora.</span></li>
+        <li><span class="titulo">Primeiro vendedor</span><span class="desc">Um login por unidade, já
+          pronto para entrar no tablet.</span></li>
+      </ol>
+    </section>
+
+    <section id="papeis">
+      <span class="eyebrow">Papéis no painel</span>
+      <h2>Quem vê o quê</h2>
+      <div class="papeis">
+        <div class="papel">
+          <span class="selo">Plataforma</span>
+          <p style="margin:0;color:var(--muted);font-size:0.93rem">Enxerga tudo: todos os operadores,
+            todas as lojas, todo o consumo.</p>
+          <ul>
+            <li>Cadastra e edita operadores</li>
+            <li>Vincula novos usuários do painel a um papel</li>
+            <li>Acesso total a qualquer loja e unidade</li>
+          </ul>
+        </div>
+        <div class="papel">
+          <span class="selo">Operador</span>
+          <p style="margin:0;color:var(--muted);font-size:0.93rem">Enxerga só as próprias lojas, unidades
+            e vendedores — inclusive o próprio desconto de frota.</p>
+          <ul>
+            <li>Cadastra lojas e unidades dentro do seu operador</li>
+            <li>Gerencia catálogo, branding e vendedores das suas lojas</li>
+            <li>Não vê operadores nem lojas de terceiros</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="glossario">
+      <span class="eyebrow">Referência rápida</span>
+      <h2>Glossário</h2>
+      <dl class="glossario">
+        <dt>Operador</dt><dd>Empresa que opera os totens; pode atender várias lojas.</dd>
+        <dt>Loja</dt><dd>Marca ou rede; dona do catálogo e do branding.</dd>
+        <dt>Unidade</dt><dd>Ponto físico de uma loja; dona dos totens contratados, do plano e do crédito do mês.</dd>
+        <dt>Vendedor</dt><dd>Login de uma pessoa numa unidade específica; usado no tablet.</dd>
+        <dt>Totem</dt><dd>Não é um aparelho — é uma unidade de contagem de crédito contratada pela unidade.</dd>
+        <dt>Pool</dt><dd>A cota de gerações do mês de uma unidade: totens contratados × créditos do plano.</dd>
+        <dt>Excedente</dt><dd>Gerações feitas depois que o pool do mês acabou. Não bloqueia, só é registrado.</dd>
+        <dt>Branding</dt><dd>Logo, cores e nome de exibição de uma loja, aplicados ao tablet em tempo real.</dd>
+      </dl>
+    </section>
+
+    <footer class="rodape">
+      Este é um guia funcional, não técnico — para o que roda por baixo (banco de dados, permissões,
+      testes), a documentação de referência do projeto é o arquivo <code>PROVVA.md</code>.
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Realce simples do item ativo no índice, conforme a rolagem passa pelas seções.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.indice a'));
+    var secoes = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    function marcar() {
+      var meio = window.scrollY + window.innerHeight * 0.3;
+      var atual = 0;
+      for (var i = 0; i < secoes.length; i++) {
+        if (secoes[i] && secoes[i].offsetTop <= meio) atual = i;
+      }
+      links.forEach(function (a, i) { a.classList.toggle('ativo', i === atual); });
+    }
+    document.addEventListener('scroll', marcar, { passive: true });
+    marcar();
+  })();
+</script>

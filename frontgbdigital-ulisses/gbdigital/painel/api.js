@@ -102,6 +102,7 @@ window.API = (() => {
   const criarVendedor = (unidadeId, nome, email) =>
     rpc('criar_vendedor', { p_unidade: unidadeId, p_nome: nome, p_email: email });
   const atualizarVendedor = (id, campos) => dados(de('vendedores').update(campos).eq('id', id));
+  const excluirVendedor = id => dados(de('vendedores').delete().eq('id', id));
 
   /* ---------------------- consumo / frota ---------------------- */
   const consumoUnidades = () => dados(de('consumo_unidade_mes').select('*'));
@@ -119,6 +120,19 @@ window.API = (() => {
   const vincularUsuario = (email, papel, operadorId, lojaId) =>
     rpc('vincular_usuario_painel', { p_email: email, p_papel: papel, p_operador: operadorId || null, p_loja: lojaId || null });
   const removerUsuario = userId => dados(de('usuarios_painel').delete().eq('user_id', userId));
+
+  /* ---------------------- gerentes da loja ---------------------- */
+  function listarGerentes(lojaId) {
+    return dados(de('usuarios_painel')
+      .select('user_id, user_email, status')
+      .eq('loja_id', lojaId)
+      .eq('papel', 'loja')
+      .order('user_email'));
+  }
+  const adicionarGerente = (lojaId, email) =>
+    rpc('vincular_usuario_painel', { p_email: email, p_papel: 'loja', p_operador: null, p_loja: lojaId });
+  const removerGerente = (lojaId, userId) =>
+    dados(de('usuarios_painel').delete().eq('user_id', userId).eq('loja_id', lojaId).eq('papel', 'loja'));
 
   /* ---------------------- storage ---------------------- */
   // Arquivos vivem em <loja_id>/... (o RLS do storage checa a pasta). URL versionada para furar cache.
@@ -145,10 +159,11 @@ window.API = (() => {
     listarOperadores, obterOperador, salvarOperador, excluirOperador,
     listarLojas, obterLoja, salvarLoja, excluirLoja,
     listarUnidades, obterUnidade, salvarUnidade, excluirUnidade,
-    listarVendedores, criarVendedor, atualizarVendedor, redefinirSenhaVendedor,
+    listarVendedores, criarVendedor, atualizarVendedor, excluirVendedor,
     consumoUnidades, frotaOperadores,
     listarCatalogo, inserirPeca, atualizarPeca, excluirPeca, upsertCatalogo,
     listarUsuarios, vincularUsuario, removerUsuario,
+    listarGerentes, adicionarGerente, removerGerente,
     subirArquivo, removerArquivo, caminhoDeUrl,
   };
 })();
