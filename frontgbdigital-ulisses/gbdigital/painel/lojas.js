@@ -158,18 +158,43 @@ window.Lojas = (() => {
     }
 
     $('gr-novo').onclick = async () => {
-      const email = prompt('E-mail do novo gerente (deve estar cadastrado no Supabase Auth):');
+      const email = prompt('E-mail do novo gerente (o login é criado automaticamente):');
       if (!email) return;
       try {
-        await API.adicionarGerente(loja.id, email.trim().toLowerCase());
-        UI.aviso(`Gerente "${email}" adicionado.`, 'ok');
+        const res = await API.adicionarGerente(loja.id, email.trim().toLowerCase());
         await carregarGerentes();
+        if (res.senha_temporaria) mostrarSenhaGerente(res.email, res.senha_temporaria);
+        else UI.aviso(`Gerente "${res.email}" vinculado (já tinha login no Auth).`, 'ok');
       } catch (e) {
         UI.aviso(UI.erroDe(e), 'erro');
       }
     };
 
     carregarGerentes();
+  }
+
+  // Mostra a senha temporária gerada pra copiar/repassar ao gerente.
+  function mostrarSenhaGerente(email, senha) {
+    const m = UI.abrirModal({
+      titulo: 'Gerente criado',
+      corpo: `
+        <div style="padding:4px 0">
+          <p class="dica">Repasse estas credenciais ao gerente. A senha não será exibida novamente.</p>
+          <div class="grade" style="margin-top:12px">
+            <div><span class="rotulo">E-mail</span><div class="nome" style="margin-top:4px">${esc(email)}</div></div>
+            <div><span class="rotulo">Senha temporária</span><div class="nome" style="margin-top:4px;font-family:monospace;font-size:16px">${esc(senha)}</div></div>
+          </div>
+        </div>`,
+      rodape: `<button type="button" class="btn btn-neutro" id="gr-copiar">Copiar senha</button>
+               <button type="button" class="btn btn-primario" id="gr-ok">Entendi</button>`,
+      largura: '420px',
+    });
+    $('gr-copiar').onclick = async () => {
+      try { await navigator.clipboard.writeText(senha); UI.aviso('Senha copiada.', 'ok'); }
+      catch (e) { UI.aviso('Não foi possível copiar automaticamente.', 'erro'); }
+    };
+    $('gr-ok').onclick = () => m.fechar();
+    $('modal-fechar').onclick = () => m.fechar();
   }
 
   function abaDados(alvo, loja, operador) {

@@ -141,15 +141,13 @@ window.API = (() => {
   const removerUsuario = userId => dados(de('usuarios_painel').delete().eq('user_id', userId));
 
   /* ---------------------- gerentes da loja ---------------------- */
-  function listarGerentes(lojaId) {
-    return dados(de('usuarios_painel')
-      .select('user_id, user_email, status')
-      .eq('loja_id', lojaId)
-      .eq('papel', 'loja')
-      .order('user_email'));
-  }
+  // usuarios_painel não guarda e-mail; a RPC junta com auth.users.
+  const listarGerentes = lojaId => rpc('listar_gerentes_loja', { p_loja: lojaId });
+  // Cria o usuário no Supabase Auth (se ainda não existir) E vincula como
+  // gerente da loja numa só chamada (Edge Function, única peça com a
+  // service_role key). Retorna { ok, user_id, senha_temporaria }.
   const adicionarGerente = (lojaId, email) =>
-    rpc('vincular_usuario_painel', { p_email: email, p_papel: 'loja', p_operador: null, p_loja: lojaId });
+    chamarFuncao('criar-gerente-loja-auth', { loja_id: lojaId, email });
   const removerGerente = (lojaId, userId) =>
     dados(de('usuarios_painel').delete().eq('user_id', userId).eq('loja_id', lojaId).eq('papel', 'loja'));
 
