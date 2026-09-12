@@ -11,6 +11,7 @@ window.CSV = (() => {
   const CATEGORIA = {
     top: 'top', 'parte de cima': 'top', cima: 'top', camisa: 'top', blusa: 'top',
     bottom: 'bottom', 'parte de baixo': 'bottom', baixo: 'bottom', calca: 'bottom',
+    vestido: 'vestido', vestidos: 'vestido', dress: 'vestido',
     calcado: 'calcado', calcados: 'calcado', sapato: 'calcado', sapatos: 'calcado', tenis: 'calcado',
     acessorio: 'acessorio', acessorios: 'acessorio',
   };
@@ -110,7 +111,7 @@ window.CSV = (() => {
       if (!nome) erros.push('nome vazio');
 
       const categoria = CATEGORIA[semAcento(obj.categoria)] || null;
-      if (!categoria) erros.push(`categoria inválida "${obj.categoria || ''}" (use top, bottom, calcado ou acessorio)`);
+      if (!categoria) erros.push(`categoria inválida "${obj.categoria || ''}" (use top, bottom, vestido, calcado ou acessorio)`);
 
       const preco = precoParaCentavos(obj.preco);
       if (preco === null || preco < 0) erros.push(`preço inválido "${obj.preco}"`);

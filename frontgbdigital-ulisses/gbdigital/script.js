@@ -79,7 +79,7 @@ const AVATAR_LIMIT = 3;
 const ANON_LIMIT = window.IS_TOTEM ? 999999 : 3; // Totem: sem limite anônimo
 
 // Totem: seleção múltipla de peças do catálogo. Independente do fileRef (seleção única do closet B2C).
-const CATALOGO_LIMITES = { top: 2, bottom: 1, calcado: 1, acessorio: 1 };
+const CATALOGO_LIMITES = { top: 2, bottom: 1, vestido: 1, calcado: 1, acessorio: 1 };
 const CATALOGO_MAX_TOTAL = 5;
 let selectedPecas = []; // [{ sku, nome, categoria, imagem_url, ... }] na ordem em que foram tocadas
 
@@ -634,8 +634,8 @@ async function loadWardrobe() {
 // Mesma lógica do closet (loadWardrobe): clicar numa peça seta fileRef com a URL da imagem.
 // Fonte: tabela catalogo_loja (leitura pública). Fallback: catalogo.json local, para o demo não depender do banco.
 const catalogoGrid = document.getElementById('catalogo-grid');
-const CATEGORIA_LABEL = { top: 'Parte de cima', bottom: 'Parte de baixo', calcado: 'Calçados', acessorio: 'Acessórios' };
-const CATEGORIA_ORDEM = ['top', 'bottom', 'calcado', 'acessorio'];
+const CATEGORIA_LABEL = { top: 'Parte de cima', bottom: 'Parte de baixo', vestido: 'Vestidos', calcado: 'Calçados', acessorio: 'Acessórios' };
+const CATEGORIA_ORDEM = ['top', 'bottom', 'vestido', 'calcado', 'acessorio'];
 
 async function fetchCatalogo() {
     // Provva: a loja vem da sessão do vendedor (totem.js). Sem loja resolvida, não há o que listar.
@@ -656,11 +656,19 @@ async function fetchCatalogo() {
 
 // Toque na peça: marca / desmarca. Teto por categoria (CATALOGO_LIMITES) com comportamento de troca:
 // ao estourar o teto, sai a peça mais antiga daquela categoria e entra a nova. Sem alert.
+// Vestido cobre torso e pernas: exclui top/bottom da seleção (e bloqueia novas escolhas
+// de top/bottom enquanto durar) para evitar composições sem sentido (vestido + calça).
 function toggleSelecionarPeca(item, card) {
     const idx = selectedPecas.findIndex(p => p.sku === item.sku);
     if (idx !== -1) {
         selectedPecas.splice(idx, 1); // já estava selecionada -> desmarca
     } else {
+        const temVestido = selectedPecas.some(p => p.categoria === 'vestido');
+        if (item.categoria === 'vestido') {
+            selectedPecas = selectedPecas.filter(p => p.categoria !== 'top' && p.categoria !== 'bottom');
+        } else if ((item.categoria === 'top' || item.categoria === 'bottom') && temVestido) {
+            return; // top/bottom bloqueados enquanto houver vestido selecionado
+        }
         const limite = CATALOGO_LIMITES[item.categoria] ?? 1;
         const mesmaCat = selectedPecas.filter(p => p.categoria === item.categoria); // preserva ordem de seleção
         if (mesmaCat.length >= limite) {
@@ -686,10 +694,15 @@ function findCard(sku) {
 }
 
 function syncCatalogoVisual() {
+    const temVestido = selectedPecas.some(p => p.categoria === 'vestido');
     document.querySelectorAll('.catalogo-card').forEach(c => {
         const on = selectedPecas.some(p => p.sku === c.dataset.sku);
         ['ring-2', 'ring-secondary', 'border-secondary'].forEach(k => c.classList.toggle(k, on));
         c.querySelector('.catalogo-check')?.classList.toggle('hidden', !on);
+        // Vestido selecionado bloqueia top/bottom (que já não estejam marcados).
+        const bloqueado = temVestido && !on && (c.dataset.categoria === 'top' || c.dataset.categoria === 'bottom');
+        c.classList.toggle('opacity-40', bloqueado);
+        c.classList.toggle('pointer-events-none', bloqueado);
     });
 }
 
@@ -750,6 +763,7 @@ async function loadCatalogo() {
             card.className = 'catalogo-card aspect-[3/4] relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-secondary transition-all bg-white';
             const preco = item.preco_centavos ? (item.preco_centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
             card.dataset.sku = item.sku;
+            card.dataset.categoria = item.categoria;
             const semEstoque = Number(item.estoque) === 0;
             card.innerHTML = `<img src="${item.imagem_url}" alt="${item.nome}" class="w-full h-full object-cover">
                 <div class="catalogo-check hidden absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-secondary text-onsecondary flex items-center justify-center shadow">

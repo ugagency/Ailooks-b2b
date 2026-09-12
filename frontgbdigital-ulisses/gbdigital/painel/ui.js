@@ -11,6 +11,7 @@ window.UI = (() => {
   const CATEGORIAS = [
     { valor: 'top', rotulo: 'Parte de cima' },
     { valor: 'bottom', rotulo: 'Parte de baixo' },
+    { valor: 'vestido', rotulo: 'Vestidos' },
     { valor: 'calcado', rotulo: 'Calçados' },
     { valor: 'acessorio', rotulo: 'Acessórios' },
   ];
