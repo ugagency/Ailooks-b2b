@@ -99,25 +99,29 @@ window.API = (() => {
     if (unidadeId) q = q.eq('unidade_id', unidadeId);
     return dados(q);
   }
-  // Cria o vendedor E o usuário no Supabase Auth numa só chamada (Edge Function,
-  // única peça com a service_role key). Retorna { ok, vendedor_id, senha_temporaria }.
-  async function criarVendedor(unidadeId, nome, email) {
+  // Chama uma Edge Function autenticada com o token do usuário logado.
+  async function chamarFuncao(nome, corpo) {
     const { data: { session } } = await cliente.auth.getSession();
-    const resp = await fetch(`${SUPABASE_URL}/functions/v1/criar-vendedor-auth`, {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/${nome}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ unidade_id: unidadeId, nome, email }),
+      body: JSON.stringify(corpo),
     });
     const json = await resp.json();
-    if (!resp.ok || !json.ok) throw new Error(json.detalhe || json.erro || 'Falha ao criar vendedor.');
+    if (!resp.ok || !json.ok) throw new Error(json.detalhe || json.erro || 'Falha na operação.');
     return json;
   }
+  // Cria o vendedor E o usuário no Supabase Auth numa só chamada (Edge Function,
+  // única peça com a service_role key). Retorna { ok, vendedor_id, senha_temporaria }.
+  const criarVendedor = (unidadeId, nome, email) =>
+    chamarFuncao('criar-vendedor-auth', { unidade_id: unidadeId, nome, email });
   const atualizarVendedor = (id, campos) => dados(de('vendedores').update(campos).eq('id', id));
-  const excluirVendedor = id => dados(de('vendedores').delete().eq('id', id));
+  // Exclui o vendedor E o usuário correspondente no Supabase Auth.
+  const excluirVendedor = id => chamarFuncao('excluir-vendedor-auth', { vendedor_id: id });
 
   /* ---------------------- consumo / frota ---------------------- */
   const consumoUnidades = () => dados(de('consumo_unidade_mes').select('*'));
