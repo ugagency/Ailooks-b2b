@@ -14,7 +14,6 @@
 const SUPABASE_URL = 'https://agzknkebggfytlqcsuuu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnemtua2ViZ2dmeXRscWNzdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDMzODUsImV4cCI6MjA4NjM3OTM4NX0.c2pFotvELY6ZopuQSMlzqUwluKc0HenIAvWuZVclQz0';
 
-const CHAVE_TOKEN = 'provva_token';
 const BRANDING_PADRAO = {
     nome_exibicao: 'AI Looks',
     logo_url: null,
@@ -146,14 +145,12 @@ function atualizarCreditos(creditos) {
 
 // Chamado por script.js após uma geração bem-sucedida. Nunca lança: falha vira aviso.
 async function registrarGeracao(origem) {
-    const token = localStorage.getItem(CHAVE_TOKEN);
-    if (!token) return null;
     try {
-        const res = await rpc('registrar_geracao', { p_token: token, p_origem: origem });
+        const res = await rpc('registrar_geracao', { p_origem: origem });
         if (!res || res.ok === false) {
             if (res && res.erro === 'sessao') {
                 toast('Sua sessão expirou. Entre novamente para continuar.', 'erro');
-                localStorage.removeItem(CHAVE_TOKEN);
+                await cliente.auth.signOut();
                 mostrarLogin('Sessão expirada. Entre novamente.');
             } else {
                 toast('Não foi possível registrar a geração no controle de créditos.', 'erro');
@@ -216,32 +213,53 @@ function iniciarSessao(payload) {
 }
 
 /* --------------------------------- auth --------------------------------- */
-const MENSAGENS_LOGIN = {
-    credenciais: 'E-mail ou senha incorretos.',
-    bloqueado: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.',
-    inativo: 'Acesso desativado. Fale com o gestor da loja.',
-    unidade_inativa: 'Esta unidade está inativa. Fale com o gestor da loja.',
-    sessao: 'Sessão inválida. Entre novamente.',
-};
-
 async function entrar(ev) {
     ev.preventDefault();
     const btn = $('authSubmitBtn'), erro = $('authError');
     if (erro) erro.classList.add('hidden');
     if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
     try {
-        const res = await rpc('vendedor_login', {
-            p_email: ($('authEmail')?.value || '').trim(),
-            p_senha: $('authPassword')?.value || '',
-        });
-        if (!res || res.ok === false) {
-            const msg = MENSAGENS_LOGIN[res && res.erro] || 'Não foi possível entrar.';
-            if (erro) { erro.textContent = msg; erro.classList.remove('hidden'); }
+        const email = ($('authEmail')?.value || '').trim();
+        const senha = $('authPassword')?.value || '';
+
+        const { error: erroAuth } = await cliente.auth.signInWithPassword({ email, password: senha });
+        if (erroAuth) {
+            if (erro) { erro.textContent = 'E-mail ou senha incorretos.'; erro.classList.remove('hidden'); }
             return;
         }
-        localStorage.setItem(CHAVE_TOKEN, res.token);
+
+        // Busca os dados do vendedor para iniciar a sessão.
+        const { data: vendedor } = await cliente
+            .from('vendedores')
+            .select('id, nome, email, unidade_id')
+            .eq('email', email)
+            .single();
+
+        if (!vendedor) {
+            if (erro) { erro.textContent = 'Vendedor não encontrado.'; erro.classList.remove('hidden'); }
+            await cliente.auth.signOut();
+            return;
+        }
+
+        // Busca a unidade e loja para dados de contexto.
+        const { data: unidade } = await cliente
+            .from('unidades')
+            .select('id, nome, loja_id')
+            .eq('id', vendedor.unidade_id)
+            .single();
+
+        const { data: loja } = unidade
+            ? await cliente.from('lojas').select('id, nome, branding').eq('id', unidade.loja_id).single()
+            : { data: null };
+
         if ($('authPassword')) $('authPassword').value = '';
-        iniciarSessao(res);
+        iniciarSessao({
+            ok: true,
+            vendedor,
+            unidade,
+            loja,
+            creditos: { incluidas: 0, usadas: 0, saldo: 0, excedente: 0, percentual: 0 },
+        });
     } catch (e) {
         console.error('login:', e);
         if (erro) { erro.textContent = 'Sem conexão com o servidor. Tente novamente.'; erro.classList.remove('hidden'); }
@@ -251,9 +269,7 @@ async function entrar(ev) {
 }
 
 async function sairTotem() {
-    const token = localStorage.getItem(CHAVE_TOKEN);
-    localStorage.removeItem(CHAVE_TOKEN);
-    try { if (token) await rpc('vendedor_logout', { p_token: token }); } catch (e) { /* sessão some ao expirar */ }
+    try { await cliente.auth.signOut(); } catch (e) { /* ignorar erro ao sair */ }
     location.reload();
 }
 
@@ -276,13 +292,40 @@ function ligarLogin() {
 async function boot() {
     ligarLogin();
     mostrarCarregando(true);
-    const token = localStorage.getItem(CHAVE_TOKEN);
-    if (!token) { mostrarLogin(''); return; }
     try {
-        const res = await rpc('vendedor_sessao', { p_token: token });
-        if (res && res.ok) { iniciarSessao(res); return; }
-        localStorage.removeItem(CHAVE_TOKEN);
-        mostrarLogin(MENSAGENS_LOGIN[res && res.erro] || 'Entre novamente.');
+        const { data: { session } } = await cliente.auth.getSession();
+        if (!session) { mostrarLogin(''); return; }
+
+        const { data: { user } } = await cliente.auth.getUser();
+        if (!user) { mostrarLogin('Sessão inválida. Entre novamente.'); return; }
+
+        // Busca os dados do vendedor.
+        const { data: vendedor } = await cliente
+            .from('vendedores')
+            .select('id, nome, email, unidade_id')
+            .eq('email', user.email)
+            .single();
+
+        if (!vendedor) { mostrarLogin('Vendedor não encontrado.'); return; }
+
+        // Busca a unidade e loja.
+        const { data: unidade } = await cliente
+            .from('unidades')
+            .select('id, nome, loja_id')
+            .eq('id', vendedor.unidade_id)
+            .single();
+
+        const { data: loja } = unidade
+            ? await cliente.from('lojas').select('id, nome, branding').eq('id', unidade.loja_id).single()
+            : { data: null };
+
+        iniciarSessao({
+            ok: true,
+            vendedor,
+            unidade,
+            loja,
+            creditos: { incluidas: 0, usadas: 0, saldo: 0, excedente: 0, percentual: 0 },
+        });
     } catch (e) {
         console.error('sessão:', e);
         mostrarLogin('Sem conexão com o servidor. Verifique a internet e tente de novo.');

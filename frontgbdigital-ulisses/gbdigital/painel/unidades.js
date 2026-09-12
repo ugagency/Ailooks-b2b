@@ -66,7 +66,7 @@ window.Unidades = (() => {
   }
 
   /* ---------------------- formulário de vendedor (modal) ---------------------- */
-  // Novo vendedor (senha inicial) ou edição (nome/e-mail). Resolve true se salvou.
+  // Novo vendedor ou edição (nome/e-mail). Senha é gerenciada via Supabase Auth.
   function formularioVendedor(unidadeId, vendedor) {
     return new Promise(resolve => {
       const v = vendedor || { nome: '', email: '' };
@@ -77,7 +77,7 @@ window.Unidades = (() => {
           <div class="grade">
             ${campo({ id: 'vd-nome', rotulo: 'Nome', valor: v.nome, attrs: 'maxlength="80"', largo: true })}
             ${campo({ id: 'vd-email', rotulo: 'E-mail (login no tablet)', tipo: 'email', valor: v.email, attrs: 'maxlength="120" autocomplete="off"', largo: true })}
-            ${vendedor ? '' : campo({ id: 'vd-senha', rotulo: 'Senha inicial', tipo: 'password', valor: '', attrs: 'minlength="6" autocomplete="new-password"', dica: 'Mínimo 6 caracteres. O vendedor usa no login do tablet.', largo: true })}
+            ${vendedor ? '' : '<div id="vd-info" class="dica" style="margin:12px 0;padding:10px;background:#EFF6FF;border-radius:8px">Após criar, você precisará criar o login no <strong>Supabase Dashboard</strong> (Authentication › Users › Add user) com o mesmo e-mail.</div>'}
           </div>
         </form>`,
         rodape: `<button type="button" class="btn btn-neutro" id="vd-cancelar">Cancelar</button>
@@ -89,18 +89,16 @@ window.Unidades = (() => {
 
       $('form-vendedor').onsubmit = async ev => {
         ev.preventDefault();
-        limparErros(['vd-nome', 'vd-email', 'vd-senha']);
+        limparErros(['vd-nome', 'vd-email']);
         let ok = true;
         const nome = $('vd-nome').value.trim(), email = $('vd-email').value.trim().toLowerCase();
         if (!nome) { erroCampo('vd-nome', 'Informe o nome.'); ok = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { erroCampo('vd-email', 'Informe um e-mail válido.'); ok = false; }
-        const senha = vendedor ? null : $('vd-senha').value;
-        if (!vendedor && senha.length < 6) { erroCampo('vd-senha', 'Mínimo 6 caracteres.'); ok = false; }
         if (!ok) return;
         const btn = $('vd-salvar'); btn.disabled = true;
         try {
           if (vendedor) await API.atualizarVendedor(vendedor.id, { nome, email });
-          else await API.criarVendedor(unidadeId, nome, email, senha);
+          else await API.criarVendedor(unidadeId, nome, email);
           UI.aviso(`Vendedor "${nome}" ${vendedor ? 'atualizado' : 'criado'}.`, 'ok');
           m.fechar();
           resolve(true);
@@ -109,36 +107,6 @@ window.Unidades = (() => {
             ? 'Já existe um vendedor com este e-mail.' : 'Não foi possível salvar: ' + UI.erroDe(e);
           $('vd-erro').hidden = false;
           btn.disabled = false;
-        }
-      };
-    });
-  }
-
-  function redefinirSenha(vendedor) {
-    return new Promise(resolve => {
-      const m = UI.abrirModal({
-        titulo: `Nova senha — ${vendedor.nome}`,
-        corpo: `<form id="form-senha" novalidate>
-          <div id="sn-erro" class="aviso-erro" hidden style="margin-bottom:14px"></div>
-          ${campo({ id: 'sn-senha', rotulo: 'Nova senha', tipo: 'password', valor: '', attrs: 'minlength="6" autocomplete="new-password"', dica: 'Mínimo 6 caracteres. As sessões abertas do vendedor são encerradas.' })}
-        </form>`,
-        rodape: `<button type="button" class="btn btn-neutro" id="sn-cancelar">Cancelar</button>
-                 <button type="submit" form="form-senha" class="btn btn-primario" id="sn-salvar">Redefinir</button>`,
-        largura: '420px',
-      });
-      $('sn-cancelar').onclick = () => { m.fechar(); resolve(false); };
-      $('sn-senha').focus();
-      $('form-senha').onsubmit = async ev => {
-        ev.preventDefault();
-        const senha = $('sn-senha').value;
-        if (senha.length < 6) { erroCampo('sn-senha', 'Mínimo 6 caracteres.'); return; }
-        $('sn-salvar').disabled = true;
-        try {
-          await API.redefinirSenhaVendedor(vendedor.id, senha);
-          UI.aviso('Senha redefinida.', 'ok');
-          m.fechar(); resolve(true);
-        } catch (e) {
-          $('sn-erro').textContent = UI.erroDe(e); $('sn-erro').hidden = false; $('sn-salvar').disabled = false;
         }
       };
     });
@@ -228,19 +196,17 @@ window.Unidades = (() => {
       lista.forEach(v => {
         const tr = document.createElement('tr');
         if (v.status !== 'ativo') tr.classList.add('inativa');
-        const bloqueado = v.bloqueado_ate && new Date(v.bloqueado_ate) > new Date();
         tr.innerHTML = `
           <td class="nome">${esc(v.nome)}</td>
-          <td>${esc(v.email)}${bloqueado ? ' ' + UI.badge('bloqueado', 'alerta') : ''}</td>
+          <td>${esc(v.email)}</td>
           <td><label class="chave"><input type="checkbox" class="vd-ativo" ${v.status === 'ativo' ? 'checked' : ''} aria-label="Ativar ou desativar ${esc(v.nome)}"><span class="trilho"></span><span class="texto">${v.status === 'ativo' ? 'Ativo' : 'Inativo'}</span></label></td>
-          <td><div class="acoes"><button type="button" class="btn-mini vd-editar">Editar</button><button type="button" class="btn-mini vd-senha">Nova senha</button></div></td>`;
+          <td><div class="acoes"><button type="button" class="btn-mini vd-editar">Editar</button></div></td>`;
         tr.querySelector('.vd-ativo').onchange = async ev => {
           const novo = ev.target.checked ? 'ativo' : 'inativo';
           try { await API.atualizarVendedor(v.id, { status: novo }); UI.aviso(`"${v.nome}" ${novo === 'ativo' ? 'ativado' : 'desativado'}.`, 'ok'); await carregarVendedores(); }
           catch (e) { ev.target.checked = !ev.target.checked; UI.aviso(UI.erroDe(e), 'erro'); }
         };
         tr.querySelector('.vd-editar').onclick = async () => { if (await formularioVendedor(unidade.id, v)) await carregarVendedores(); };
-        tr.querySelector('.vd-senha').onclick = () => redefinirSenha(v);
         corpo.appendChild(tr);
       });
     }
@@ -252,5 +218,5 @@ window.Unidades = (() => {
 
   Rotas.registrar('/unidades/:id', telaDetalhe, { titulo: 'Unidade' });
 
-  return { render, formulario, formularioVendedor, redefinirSenha, creditos, barraConsumo };
+  return { render, formulario, formularioVendedor, creditos, barraConsumo };
 })();

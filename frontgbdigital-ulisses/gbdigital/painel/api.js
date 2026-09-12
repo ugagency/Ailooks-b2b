@@ -93,16 +93,15 @@ window.API = (() => {
   const excluirUnidade = id => dados(de('unidades').delete().eq('id', id));
 
   /* ---------------------- vendedores ---------------------- */
-  // Leitura pela view (sem senha_hash); criação e senha só por RPC (hash no banco).
+  // Leitura pela view; criação usa Supabase Auth para senha.
   function listarVendedores(unidadeId) {
     let q = de('vendedores_painel').select('*').order('nome');
     if (unidadeId) q = q.eq('unidade_id', unidadeId);
     return dados(q);
   }
-  const criarVendedor = (unidadeId, nome, email, senha) =>
-    rpc('criar_vendedor', { p_unidade: unidadeId, p_nome: nome, p_email: email, p_senha: senha });
+  const criarVendedor = (unidadeId, nome, email) =>
+    rpc('criar_vendedor', { p_unidade: unidadeId, p_nome: nome, p_email: email });
   const atualizarVendedor = (id, campos) => dados(de('vendedores').update(campos).eq('id', id));
-  const redefinirSenhaVendedor = (id, senha) => rpc('redefinir_senha_vendedor', { p_id: id, p_senha: senha });
 
   /* ---------------------- consumo / frota ---------------------- */
   const consumoUnidades = () => dados(de('consumo_unidade_mes').select('*'));

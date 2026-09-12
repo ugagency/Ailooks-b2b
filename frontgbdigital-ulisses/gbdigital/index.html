@@ -106,16 +106,9 @@
   <script>
     const SUPABASE_URL = 'https://agzknkebggfytlqcsuuu.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnemtua2ViZ2dmeXRscWNzdXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDMzODUsImV4cCI6MjA4NjM3OTM4NX0.c2pFotvELY6ZopuQSMlzqUwluKc0HenIAvWuZVclQz0';
-    const CHAVE_TOKEN = 'provva_token';
 
     const cliente = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const $ = id => document.getElementById(id);
-
-    const MENSAGENS_VENDEDOR = {
-      bloqueado: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.',
-      inativo: 'Acesso desativado. Fale com o gestor da loja.',
-      unidade_inativa: 'Esta unidade está inativa. Fale com o gestor da loja.',
-    };
 
     function mostrarErro(msg) {
       const erro = $('login-erro');
@@ -138,28 +131,33 @@
       const senha = $('login-senha').value;
 
       try {
-        // 1) Tenta como vendedor (login do tablet).
-        const { data: resVendedor, error: erroVendedor } = await cliente.rpc('vendedor_login', {
-          p_email: email, p_senha: senha,
-        });
-        if (erroVendedor) throw erroVendedor;
-
-        if (resVendedor && resVendedor.ok) {
-          localStorage.setItem(CHAVE_TOKEN, resVendedor.token);
-          location.href = 'tablet.html';
-          return;
-        }
-        if (resVendedor && resVendedor.erro && resVendedor.erro !== 'credenciais') {
-          mostrarErro(MENSAGENS_VENDEDOR[resVendedor.erro] || 'Não foi possível entrar.');
-          return;
-        }
-
-        // 2) Não é vendedor (ou senha errada) — tenta loja/operador/plataforma (Supabase Auth).
+        // Tenta Supabase Auth (vendedor, loja, operador ou plataforma).
         const { error: erroAuth } = await cliente.auth.signInWithPassword({ email, password: senha });
         if (erroAuth) {
           mostrarErro('E-mail ou senha incorretos.');
           return;
         }
+
+        // Descobrir o papel do usuário e redirecionar.
+        const { data: { user } } = await cliente.auth.getUser();
+        if (!user) { mostrarErro('Sem acesso.'); return; }
+
+        // Tenta obter perfil para vendedor (busca na tabela vendedores).
+        try {
+          const { data: vendedor } = await cliente
+            .from('vendedores')
+            .select('id')
+            .eq('email', email)
+            .single();
+          if (vendedor) {
+            location.href = 'tablet.html';
+            return;
+          }
+        } catch (e) {
+          // Não é vendedor, continua.
+        }
+
+        // Se chegou aqui, é loja/operador/plataforma.
         location.href = 'painel.html';
       } catch (e) {
         console.error('login:', e);
